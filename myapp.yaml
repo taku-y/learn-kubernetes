@@ -18,7 +18,10 @@ spec:
           name: nginx
           env:   # （3）環境変数の設定
             - name: MY_ENV
-              value: "World"
+              valueFrom:
+                secretKeyRef:
+                  name: myapp-secret
+                  key: MY_ENV
           volumeMounts:   # （4）ボリュームマウントの設定
             - name: myapp-config
               mountPath: /etc/nginx/templates
