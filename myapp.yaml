@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+spec:
+  replicas: 1   # （1）Podレプリカ数
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:   # （2）コンテナの設定
+        # コンテナイメージ
+        - image: docker.io/nginx:1.23
+          name: nginx
+          env:   # （3）環境変数の設定
+            - name: MY_ENV
+              value: "World"
+          volumeMounts:   # （4）ボリュームマウントの設定
+            - name: myapp-config
+              mountPath: /etc/nginx/templates
+      volumes:   # （5）ボリュームの設定
+        - name: myapp-config
+          configMap:
+            name: myapp-config
