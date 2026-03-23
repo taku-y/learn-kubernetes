@@ -97,25 +97,89 @@ multipass list
 
 ---
 
-## 4. USB SSD を VM にマウント
+## 4. USB SSD を VM にマウント (NFS 方式)
+
+macOS Sequoia + Multipass (qemu driver) 環境では `multipass mount` が正常に動作しないため、NFS を使って SSD を VM に共有します。
 
 ### 4-1. Mac 側で SSD のマウントポイントを確認
 
+パーティション一覧を確認:
+
 ```bash
-diskutil info /dev/disk4 | grep "Mount Point"
+diskutil list /dev/disk4
+```
+
+パーティション (例: `disk4s2`) のマウントポイントを確認:
+
+```bash
+diskutil info /dev/disk4s2 | grep "Mount Point"
 # 例: Mount Point: /Volumes/SSD
 ```
 
-### 4-2. Multipass でホストディレクトリをマウント
+### 4-2. macOS のフルディスクアクセスを許可
+
+`nfsd` が外付けドライブにアクセスするには**フルディスクアクセス**の権限が必要です。
+
+1. **システム設定** → **プライバシーとセキュリティ** → **フルディスクアクセス** を開く
+2. 鍵アイコンをクリックしてロック解除
+3. `+` ボタンを押し、`Cmd+Shift+G` で `/sbin/` に移動
+4. `nfsd` を選択して追加
+
+> **注意**: この設定を行わないと `sandbox_check failed. nfsd has no read access` エラーが発生します。
+
+### 4-3. Mac 側で NFS サーバーを設定
+
+`/etc/exports` に SSD のパスとアクセス許可するサブネットを追加:
 
 ```bash
-multipass mount /Volumes/SSD k3s-master:/mnt/ssd
+sudo sh -c 'echo "/Volumes/SSD 192.168.64.0 -network 255.255.255.0 -alldirs -mapall=$(id -u):$(id -g)" >> /etc/exports'
+```
+
+NFS サーバーを起動:
+
+```bash
+sudo nfsd start
+sudo nfsd update
+```
+
+設定確認:
+
+```bash
+showmount -e localhost
+# /Volumes/SSD が表示されれば OK
+```
+
+### 4-4. VM から見た Mac の IP アドレスを確認
+
+```bash
+multipass shell k3s-master
+ip route | grep default
+# 例: default via 192.168.64.1 dev enth0
+# → Mac の IP は 192.168.64.1
+```
+
+### 4-5. VM 内で NFS クライアントをインストールしてマウント
+
+```bash
+# VM 内で実行
+sudo apt install -y nfs-common
+sudo mkdir -p /mnt/ssd
+sudo mount -t nfs 192.168.64.1:/Volumes/SSD /mnt/ssd
 ```
 
 マウント確認:
 
 ```bash
-multipass info k3s-master
+df -h /mnt/ssd
+ls /mnt/ssd
+```
+
+### 4-6. VM 再起動時に自動マウントする設定
+
+`/etc/fstab` に追記して永続化:
+
+```bash
+echo "192.168.64.1:/Volumes/SSD /mnt/ssd nfs defaults 0 0" | sudo tee -a /etc/fstab
 ```
 
 ---
@@ -149,8 +213,28 @@ curl -sfL https://get.k3s.io | sh -
 
 ```bash
 sudo systemctl status k3s
+```
+
+正常な場合の出力例:
+
+```
+● k3s.service - Lightweight Kubernetes
+     Loaded: loaded (/etc/systemd/system/k3s.service; enabled; vendor preset: enabled)
+     Active: active (running) since ...
+```
+
+```bash
 sudo kubectl get nodes
 ```
+
+正常な場合の出力例:
+
+```
+NAME         STATUS   ROLES                  AGE   VERSION
+k3s-master   Ready    control-plane,master   1m    v1.x.x+k3s1
+```
+
+`STATUS` が `Ready` になっていれば正常です。
 
 ---
 
@@ -324,8 +408,14 @@ sudo journalctl -u k3s -f
 # VM 内でマウント状況確認
 mount | grep ssd
 
-# Mac 側でマウント確認
-multipass info k3s-master
+# NFS サーバーの状態確認 (Mac 側)
+sudo nfsd status
+showmount -e localhost
+
+# NFS サーバーの再起動 (Mac 側)
+sudo nfsd stop
+sudo nfsd start
+sudo nfsd update
 ```
 
 ### kubectl が "connection refused" になる
