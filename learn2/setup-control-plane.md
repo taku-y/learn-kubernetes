@@ -248,9 +248,18 @@ VM 内で:
 sudo mkdir -p /mnt/ssd/k8s-storage
 ```
 
-### 7-2. PersistentVolume マニフェストの作成
+### 7-2. PersistentVolume マニフェストの作成 (`pv-ssd.yaml`)
 
-VM 内、または Mac のエディタで以下のファイルを作成します。
+**PersistentVolume (PV)** は、クラスタ内で使用できるストレージの実体を定義するリソースです。SSD 上の物理的なディレクトリを Kubernetes のストレージとして登録します。
+
+| フィールド | 値 | 説明 |
+|---|---|---|
+| `capacity.storage` | `100Gi` | 提供するストレージ容量 |
+| `accessModes` | `ReadWriteOnce` | 単一ノードからの読み書きを許可 |
+| `persistentVolumeReclaimPolicy` | `Retain` | PVC 削除後もデータを保持する |
+| `storageClassName` | `local-ssd` | 対応する StorageClass 名 |
+| `local.path` | `/mnt/ssd/k8s-storage` | VM 内のストレージパス |
+| `nodeAffinity` | `k3s-master` | このノードにのみバインドする |
 
 ```yaml
 # pv-ssd.yaml
@@ -283,7 +292,14 @@ spec:
 sudo kubectl apply -f pv-ssd.yaml
 ```
 
-### 7-3. StorageClass の作成
+### 7-3. StorageClass の作成 (`storageclass-ssd.yaml`)
+
+**StorageClass** は、ストレージの種類と動作を定義するリソースです。PVC がどの PV にバインドされるかをこの名前 (`local-ssd`) で紐付けます。
+
+| フィールド | 値 | 説明 |
+|---|---|---|
+| `provisioner` | `kubernetes.io/no-provisioner` | 動的プロビジョニングを行わず手動で PV を管理する |
+| `volumeBindingMode` | `WaitForFirstConsumer` | Pod がスケジュールされるまでバインドを遅延させる |
 
 ```yaml
 # storageclass-ssd.yaml
@@ -301,7 +317,15 @@ volumeBindingMode: WaitForFirstConsumer
 sudo kubectl apply -f storageclass-ssd.yaml
 ```
 
-### 7-4. PersistentVolumeClaim の作成 (動作確認用)
+### 7-4. PersistentVolumeClaim の作成 (`pvc-ssd.yaml`) (動作確認用)
+
+**PersistentVolumeClaim (PVC)** は、Pod がストレージを要求するためのリソースです。`storageClassName` が一致する PV に自動的にバインドされます。
+
+| フィールド | 値 | 説明 |
+|---|---|---|
+| `storageClassName` | `local-ssd` | 使用する StorageClass 名 |
+| `accessModes` | `ReadWriteOnce` | 単一ノードからの読み書きを要求 |
+| `resources.requests.storage` | `10Gi` | 要求するストレージ容量 |
 
 ```yaml
 # pvc-ssd.yaml
