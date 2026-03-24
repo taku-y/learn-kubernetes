@@ -238,9 +238,49 @@ k3s-master   Ready    control-plane,master   1m    v1.x.x+k3s1
 
 ---
 
-## 7. SSD を Kubernetes の PersistentVolume として設定
+## 7. k9s のインストール
 
-### 7-1. ストレージ用ディレクトリの作成
+VM 内に k9s (ターミナルベースの Kubernetes UI) をインストールします。
+
+```bash
+# VM に入る
+multipass shell k3s-master
+
+# 最新バージョンを取得して展開
+curl -sL https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_arm64.tar.gz | tar xz
+
+# バイナリを PATH に移動
+sudo mv k9s /usr/local/bin/
+
+# 動作確認
+k9s version
+```
+
+k3s の場合、kubeconfig のパスを明示的に指定して起動します:
+
+```bash
+sudo k9s --kubeconfig /etc/rancher/k3s/k3s.yaml
+```
+
+毎回指定するのが面倒な場合は環境変数を設定:
+
+```bash
+echo 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml' >> ~/.bashrc
+source ~/.bashrc
+k9s
+```
+
+`sudo` なしで実行したい場合は kubeconfig のパーミッションを変更:
+
+```bash
+sudo chmod 644 /etc/rancher/k3s/k3s.yaml
+```
+
+---
+
+## 8. SSD を Kubernetes の PersistentVolume として設定
+
+### 8-1. ストレージ用ディレクトリの作成
 
 VM 内で:
 
@@ -248,7 +288,7 @@ VM 内で:
 sudo mkdir -p /mnt/ssd/k8s-storage
 ```
 
-### 7-2. PersistentVolume マニフェストの作成 (`pv-ssd.yaml`)
+### 8-2. PersistentVolume マニフェストの作成 (`pv-ssd.yaml`)
 
 **PersistentVolume (PV)** は、クラスタ内で使用できるストレージの実体を定義するリソースです。SSD 上の物理的なディレクトリを Kubernetes のストレージとして登録します。
 
@@ -292,7 +332,7 @@ spec:
 sudo kubectl apply -f pv-ssd.yaml
 ```
 
-### 7-3. StorageClass の作成 (`storageclass-ssd.yaml`)
+### 8-3. StorageClass の作成 (`storageclass-ssd.yaml`)
 
 **StorageClass** は、ストレージの種類と動作を定義するリソースです。PVC がどの PV にバインドされるかをこの名前 (`local-ssd`) で紐付けます。
 
@@ -317,7 +357,7 @@ volumeBindingMode: WaitForFirstConsumer
 sudo kubectl apply -f storageclass-ssd.yaml
 ```
 
-### 7-4. PersistentVolumeClaim の作成 (`pvc-ssd.yaml`) (動作確認用)
+### 8-4. PersistentVolumeClaim の作成 (`pvc-ssd.yaml`) (動作確認用)
 
 **PersistentVolumeClaim (PVC)** は、Pod がストレージを要求するためのリソースです。`storageClassName` が一致する PV に自動的にバインドされます。
 
@@ -351,7 +391,7 @@ sudo kubectl get pvc
 
 ---
 
-## 8. クラスタの動作確認
+## 9. クラスタの動作確認
 
 ```bash
 # ノード確認
@@ -369,90 +409,84 @@ sudo kubectl get all -A
 
 ---
 
-## 9. kubeconfig の取得 (Mac 側から操作する場合)
+## 10. ストレージへの書き込み確認
 
-VM の kubeconfig を Mac にコピーして、Mac から `kubectl` を使えるようにします。
+テスト用 Pod を立ち上げ、PVC 経由で SSD に実際に書き込めるか確認します。
 
-### 9-1. Mac に kubectl をインストール
+### 10-1. テスト用 Pod マニフェストの作成
 
-```bash
-brew install kubectl
+```yaml
+# test-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: storage-test
+spec:
+  containers:
+    - name: busybox
+      image: busybox
+      command: ["sh", "-c", "sleep 3600"]
+      volumeMounts:
+        - mountPath: /data
+          name: ssd-volume
+  volumes:
+    - name: ssd-volume
+      persistentVolumeClaim:
+        claimName: ssd-pvc
 ```
 
-### 9-2. kubeconfig をコピー
+### 10-2. Pod の起動
 
 ```bash
-# VM の IP アドレスを確認
-multipass info k3s-master | grep IPv4
+sudo kubectl apply -f test-pod.yaml
 
-# kubeconfig を取得
-multipass exec k3s-master -- sudo cat /etc/rancher/k3s/k3s.yaml > ~/.kube/config-k3s
+# Pod が Running になるまで待つ
+sudo kubectl get pod storage-test -w
 ```
 
-### 9-3. サーバーアドレスを VM の IP に変更
+正常な場合の出力例:
 
-`~/.kube/config-k3s` 内の `server: https://127.0.0.1:6443` を VM の実際の IP に置き換えます。
-
-```bash
-# 例: VM の IP が 192.168.64.10 の場合
-sed -i '' 's/127.0.0.1/192.168.64.10/' ~/.kube/config-k3s
+```
+NAME           READY   STATUS    RESTARTS   AGE
+storage-test   1/1     Running   0          30s
 ```
 
-### 9-4. kubeconfig を設定
+> **注意**: `WaitForFirstConsumer` モードのため、Pod が起動するタイミングで PVC が PV にバインドされます。PVC の STATUS が `Pending` でも Pod 起動後に `Bound` になります。
+
+### 10-3. 書き込みテスト
 
 ```bash
-export KUBECONFIG=~/.kube/config-k3s
+# Pod 内でファイルを書き込む
+sudo kubectl exec storage-test -- sh -c "echo 'hello from k8s' > /data/test.txt"
 
-# または既存の config とマージ
-export KUBECONFIG=~/.kube/config:~/.kube/config-k3s
-kubectl config view --flatten > ~/.kube/config-merged
-mv ~/.kube/config-merged ~/.kube/config
+# 書き込んだ内容を確認
+sudo kubectl exec storage-test -- cat /data/test.txt
 ```
 
-### 9-5. Mac から動作確認
+期待される出力:
 
-```bash
-kubectl get nodes
-kubectl get pv
+```
+hello from k8s
 ```
 
----
-
-## トラブルシューティング
-
-### k3s が起動しない
+### 10-4. VM 側からも確認
 
 ```bash
-sudo journalctl -u k3s -f
+multipass shell k3s-master
+cat /mnt/ssd/k8s-storage/test.txt
+# hello from k8s
 ```
 
-### SSD がマウントされない
+### 10-5. テスト用リソースの削除
 
 ```bash
-# VM 内でマウント状況確認
-mount | grep ssd
-
-# NFS サーバーの状態確認 (Mac 側)
-sudo nfsd status
-showmount -e localhost
-
-# NFS サーバーの再起動 (Mac 側)
-sudo nfsd stop
-sudo nfsd start
-sudo nfsd update
-```
-
-### kubectl が "connection refused" になる
-
-VM の IP アドレスが変わっている可能性があります。再確認して kubeconfig を更新してください。
-
-```bash
-multipass info k3s-master | grep IPv4
+sudo kubectl delete pod storage-test
+sudo kubectl delete -f test-pod.yaml
 ```
 
 ---
 
-## VM の停止・再起動
+## 11. VM の停止・再起動
 
 ```bash
 # 停止
