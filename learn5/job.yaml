@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minio-rust-client
+  namespace: minio
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: minio-rust-client
+          image: minio-rust-client:latest
+          imagePullPolicy: Never
+          env:
+            - name: MINIO_ENDPOINT
+              value: "http://minio.minio.svc:9000"
+            - name: BUCKET_NAME
+              value: "rust-bucket"
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: minio-config
+                  key: root-user
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret
+                  key: root-password
