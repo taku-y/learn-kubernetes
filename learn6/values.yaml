@@ -1,0 +1,16 @@
+auth:
+  rootUser: minioadmin
+  rootPassword: minioadmin
+
+mode: standalone
+
+persistence:
+  enabled: true
+  storageClass: local-ssd
+  size: 50Gi
+
+service:
+  type: NodePort
+  nodePorts:
+    api: "30900"
+    console: "30901"

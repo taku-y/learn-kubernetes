@@ -1,0 +1,25 @@
+auth:
+  rootUser: minioadmin
+  rootPassword: minioadmin
+
+mode: standalone
+
+persistence:
+  enabled: true
+  storageClass: local-ssd
+  size: 50Gi
+
+service:
+  type: NodePort
+  nodePorts:
+    api: "30900"
+    console: "30901"
+
+# upgrade で追加: リソース制限
+resources:
+  requests:
+    memory: 256Mi
+    cpu: 100m
+  limits:
+    memory: 512Mi
+    cpu: 500m
