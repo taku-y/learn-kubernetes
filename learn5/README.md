@@ -12,6 +12,8 @@
 - [2. Docker Engine のインストール](#2-docker-engine-のインストール)
 - [3. Rust プログラムの概要](#3-rust-プログラムの概要)
 - [4. Docker イメージのビルド](#4-docker-イメージのビルド)
+  - [4-1. スワップ領域の追加](#4-1-スワップ領域の追加)
+  - [4-2. ビルド](#4-2-ビルド)
 - [5. k3s へのイメージのインポート](#5-k3s-へのイメージのインポート)
 - [6. Job の実行](#6-job-の実行)
 - [7. 結果の確認](#7-結果の確認)
@@ -106,12 +108,32 @@ docker version
 
 ## 4. Docker イメージのビルド
 
-VM 内の learn5 ディレクトリでビルドします。
+### 4-1. スワップ領域の追加
+
+`aws-sdk-s3` はコンパイル時に大量のメモリを消費します。VM の 2GB RAM では不足するため、事前にスワップ領域を追加します。
+
+```bash
+# 2GB のスワップファイルを作成
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+
+# 再起動後も有効にする
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+
+# 確認
+free -h
+```
+
+### 4-2. ビルド
+
 Dockerfile はマルチステージビルドを採用しており、ビルド環境 (`rust:slim`) と実行環境 (`debian:bookworm-slim`) を分離しています。
+`CARGO_BUILD_JOBS=1` でコンパイルの並列数を1に制限し、メモリ使用量を抑えます。
 
 ```bash
 cd /home/ubuntu/learn5
-docker build -t minio-rust-client:latest .
+CARGO_BUILD_JOBS=1 docker build -t minio-rust-client:latest .
 ```
 
 > **注意**: 初回ビルド時は Rust のコンパイルと依存クレートのダウンロードに数分かかります。
