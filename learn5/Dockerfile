@@ -1,5 +1,6 @@
 # ビルドステージ
-FROM rust:slim AS builder
+# bookworm を明示指定し、実行ステージの debian:bookworm-slim と glibc バージョンを揃える
+FROM rust:bookworm-slim AS builder
 WORKDIR /app
 
 # 依存クレートのキャッシュを先に構築
