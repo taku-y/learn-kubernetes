@@ -60,9 +60,9 @@ VM 内で実行します。
 ```bash
 multipass shell k3s-master
 
-# Docker Engine のインストール
+# Docker Engine と buildx のインストール
 sudo apt-get update
-sudo apt-get install -y docker.io
+sudo apt-get install -y docker.io docker-buildx
 
 # 起動・自動起動設定
 sudo systemctl start docker
