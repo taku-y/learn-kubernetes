@@ -1,6 +1,5 @@
-auth:
-  rootUser: minioadmin
-  rootPassword: minioadmin
+rootUser: minioadmin
+rootPassword: minioadmin
 
 mode: standalone
 
@@ -11,9 +10,11 @@ persistence:
 
 service:
   type: NodePort
-  nodePorts:
-    api: "30900"
-    console: "30901"
+  nodePort: 30900
+
+consoleService:
+  type: NodePort
+  nodePort: 30901
 
 # upgrade で追加: リソース制限
 resources:

@@ -20,6 +20,9 @@ Helm はこの問題を以下の仕組みで解決します。
 - `upgrade` / `rollback` でデプロイの変更履歴を管理できる
 - `values.yaml` の差し替えだけで環境ごとの設定を切り替えられる
 
+> **注意:** Bitnami は 2025年8月28日以降、無料で利用できるイメージ・Chart の範囲を制限しました。
+> このガイドでは公式 MinIO Helm Chart (`https://charts.min.io/`) を使用します。
+
 ---
 
 ## 目次
@@ -29,7 +32,7 @@ Helm はこの問題を以下の仕組みで解決します。
 - [2. 既存リソースのクリーンアップ](#2-既存リソースのクリーンアップ)
 - [3. Helm のインストール](#3-helm-のインストール)
 - [4. PV の作成](#4-pv-の作成)
-- [5. Bitnami リポジトリの追加](#5-bitnami-リポジトリの追加)
+- [5. 公式 MinIO リポジトリの追加](#5-公式-minio-リポジトリの追加)
 - [6. helm install でデプロイ](#6-helm-install-でデプロイ)
 - [7. 動作確認](#7-動作確認)
 - [8. helm upgrade で設定変更](#8-helm-upgrade-で設定変更)
@@ -109,16 +112,16 @@ sudo kubectl get pv minio-helm-pv
 
 ---
 
-## 5. Bitnami リポジトリの追加
+## 5. 公式 MinIO リポジトリの追加
 
-Helm Chart は**リポジトリ**で配布されています。Bitnami は品質の高い Chart を多数公開しているコミュニティです。
+Helm Chart は**リポジトリ**で配布されています。ここでは MinIO 公式が提供するリポジトリを使います。
 
 ```bash
-helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo add minio-official https://charts.min.io/
 helm repo update
 
 # MinIO Chart の確認
-helm search repo bitnami/minio
+helm search repo minio-official/minio
 ```
 
 ---
@@ -128,7 +131,7 @@ helm search repo bitnami/minio
 `values.yaml` を渡して MinIO をインストールします。
 
 ```bash
-helm install minio bitnami/minio \
+helm install minio minio-official/minio \
   --namespace minio \
   --create-namespace \
   -f /home/ubuntu/learn6/values.yaml
@@ -137,7 +140,7 @@ helm install minio bitnami/minio \
 | オプション | 説明 |
 |---|---|
 | `minio` | Release 名 |
-| `bitnami/minio` | 使用する Chart |
+| `minio-official/minio` | 使用する Chart |
 | `--namespace minio` | デプロイ先 namespace |
 | `--create-namespace` | namespace が存在しない場合に作成 |
 | `-f values.yaml` | カスタム設定ファイルを指定 |
@@ -182,7 +185,7 @@ multipass info k3s-master | grep IPv4
 `helm upgrade` を実行すると Revision が増え、Pod が新しい設定で再起動します。
 
 ```bash
-helm upgrade minio bitnami/minio \
+helm upgrade minio minio-official/minio \
   --namespace minio \
   -f /home/ubuntu/learn6/values-v2.yaml
 ```
