@@ -229,3 +229,81 @@ sudo kubectl delete -f /home/ubuntu/learn6/pv.yaml
 sudo rm -rf /mnt/ssd/minio-helm-storage
 sudo kubectl delete namespace minio
 ```
+
+---
+
+## トラブルシューティング
+
+### helm install 後に Pod が Pending のまま
+
+**原因1: メモリ不足**
+
+```
+0/1 nodes are available: 1 Insufficient memory.
+```
+
+`values.yaml` に `resources` を追加してメモリ要求を制限します（`values.yaml` には既に設定済み）。
+
+再インストール:
+
+```bash
+helm uninstall minio -n minio
+helm install minio minio-official/minio --namespace minio --create-namespace -f /home/ubuntu/learn6/values.yaml
+```
+
+---
+
+**原因2: PV が Released 状態で PVC にバインドできない**
+
+```
+0/1 nodes are available: 1 node(s) didn't find available persistent volumes to bind.
+```
+
+#### claimRef とは
+
+PV と PVC の **1対1の紐付け情報**です。PV 側に記録され、「この PV はどの PVC に予約されているか」を示します。
+
+```
+PV (minio-helm-pv)
+  └── claimRef:
+        namespace: minio
+        name: minio        ← この PVC のためだけに確保
+```
+
+これにより、同じ `storageClass` の別の PVC が誤って接続されることを防ぎます。
+
+#### PV のステータス遷移
+
+| STATUS | 意味 |
+|---|---|
+| `Available` | 空き。どの PVC にもバインド可能 |
+| `Bound` | PVC に紐付き済み |
+| `Released` | PVC は削除されたが claimRef がまだ残っている |
+
+#### なぜ自動でクリアされないのか
+
+`Retain` ポリシーは**データを保護するための設計**です。誰かが明示的に確認・クリーンアップするまで PV を保持し続けます。自動でクリアされると、意図せずデータが上書きされるリスクがあります。
+
+#### 対処手順
+
+`helm uninstall` で PVC が削除されると、`Retain` ポリシーにより PV に古い `claimRef` が残り `Released` 状態になります。`Released` 状態の PV は新しい PVC からバインドできません。
+
+PV の状態を確認:
+
+```bash
+kubectl get pv minio-helm-pv
+```
+
+`STATUS` が `Released` の場合、`claimRef` をクリアして `Available` に戻します:
+
+```bash
+kubectl patch pv minio-helm-pv -p '{"spec":{"claimRef": null}}'
+```
+
+その後、既存の Pod を削除して Deployment に再作成させます:
+
+```bash
+kubectl delete pod -n minio <pod名>
+```
+
+新しい Pod が `Running` になれば解消されています。
