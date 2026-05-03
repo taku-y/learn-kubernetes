@@ -22,3 +22,7 @@ Kubernetes の学習用リポジトリです。
 | C | **Ingress**: Ingress Controller (Traefik / Nginx) を導入し、MinIO Console と S3 API をホスト名ベースでルーティングする | 中 |
 | D | **HorizontalPodAutoscaler**: CPU 負荷に応じて Pod 数を自動スケールさせ、スケールアウト/インの挙動を観察する | 中 |
 | E | **マルチノードクラスタ**: Multipass で VM をもう1台追加して k3s エージェントとして参加させ、Pod のスケジューリングとノード間ストレージの扱いを学ぶ | 中 |
+
+## 参考情報
+
+- [『Kubernetes完全ガイド（第二版）』 付録マニフェストのリポジトリ](https://github.com/MasayaAoyama/kubernetes-perfect-guide)
