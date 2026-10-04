@@ -79,7 +79,7 @@ k3s-master              Running           192.168.64.5     Ubuntu 22.04 LTS
 `192.168.64.5` が VM の IP アドレスです。Mac と VM は `192.168.64.0/24` のネットワークでつながり、
 Mac 側は `192.168.64.1` になります（VM の中で `ip route` を見ると `default via 192.168.64.1 dev enp0s1` と出ます）。
 
-メモリ 2GB は、後のステップ（MinIO、Rust のビルド）で足りなくなる大きさです。learn5 でスワップを足して補います。
+メモリ 2GB は、後のステップ（Rust のビルド）で足りなくなる大きさです。learn5 でスワップを足して補います。
 
 ## 3. SSD を VM から見えるようにする
 
@@ -156,7 +156,7 @@ traefik-788bc4688c-kqgqb                  1/1     Running     1 (185d ago)   186
 
 | Pod | 役割 |
 |---|---|
-| `coredns` | クラスタ内の名前解決。learn3 の `minio.minio.svc` のような名前を IP に変える |
+| `coredns` | クラスタ内の名前解決。learn3 の `rustfs.rustfs.svc` のような名前を IP に変える |
 | `local-path-provisioner` | PVC が来たら、VM のディスク上にディレクトリを作って PV を自動で用意する（この教材では使わない） |
 | `metrics-server` | Pod の CPU・メモリ使用量を集める |
 | `traefik`、`svclb-traefik` | クラスタの外から HTTP を受ける入口（この教材では使わない） |
@@ -420,4 +420,4 @@ multipass delete --purge k3s-master   # 消す（クラスタもすべて消え�
 - PV は管理者が用意する在庫、PVC は利用者の注文。Pod は PVC だけを知っている
 - `WaitForFirstConsumer` の PVC は、Pod が現れるまで `Pending` で正常
 - PV は丸ごと 1 つの PVC に渡され、`Retain` の PV は PVC を消すと `Released` になって再利用されない
-- 次の [learn3](../learn3/README.md) では、この StorageClass の上に MinIO（オブジェクトストレージ）を載せます
+- 次の [learn3](../learn3/README.md) では、この StorageClass の上に RustFS（オブジェクトストレージ）を載せます
