@@ -9,7 +9,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: minio-rust-client
-          image: minio-rust-client:latest
+          image: minio-rust-client:0.1.0
           imagePullPolicy: Never
           env:
             - name: MINIO_ENDPOINT

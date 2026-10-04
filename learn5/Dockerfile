@@ -1,10 +1,10 @@
 # ビルドステージ
 # bookworm を明示指定し、実行ステージの debian:bookworm-slim と glibc バージョンを揃える
-FROM rust:slim-bookworm AS builder
+FROM rust:1.94-slim-bookworm AS builder
 WORKDIR /app
 
 # 依存クレートのキャッシュを先に構築
-COPY Cargo.toml ./
+COPY Cargo.toml Cargo.lock ./
 RUN mkdir src && echo "fn main() {}" > src/main.rs && cargo build --release
 
 # 本番コードをビルド
