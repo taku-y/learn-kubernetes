@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: minio-pv
+  name: rustfs-pv
 spec:
   capacity:
     storage: 50Gi
@@ -10,7 +10,7 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   storageClassName: local-ssd
   local:
-    path: /mnt/ssd/minio-storage
+    path: /mnt/ssd/rustfs-storage
   nodeAffinity:
     required:
       nodeSelectorTerms:

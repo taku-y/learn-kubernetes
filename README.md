@@ -24,7 +24,7 @@ Kubernetes の学習用リポジトリです。
 |---|---|
 | [learn1](learn1/README.md) | 書籍「つくって、壊して、直して学ぶ Kubernetes入門」(高橋あおい著) のハンズオンで使用するマニフェストファイル |
 | [learn2](learn2/README.md) | Mac Mini 上に Multipass と k3s を使って Kubernetes コントロールプレーンを構築する手順。USB 接続の外付け SSD を PersistentVolume として Kubernetes から利用する設定も含む |
-| [learn3](learn3/README.md) | learn2 で構築したクラスタ上に MinIO (S3 互換オブジェクトストレージ) をデプロイする手順。StorageClass・PersistentVolume・PersistentVolumeClaim の関係を学ぶ |
+| [learn3](learn3/README.md) | learn2 で構築したクラスタ上に RustFS (S3 互換オブジェクトストレージ) をデプロイする手順。StorageClass・PersistentVolume・PersistentVolumeClaim の関係を学ぶ |
 | [learn4](learn4/README.md) | learn3 の MinIO 構成をリファクタリングし、マニフェストにハードコードされていた認証情報を ConfigMap (ユーザー名) と Secret (パスワード) に分離する |
 | [learn5](learn5/README.md) | `aws-sdk-s3` crate を使った Rust プログラムを Kubernetes の Job として実行し、MinIO に対してバケット作成・アップロード・一覧取得・ダウンロードを行う |
 | [learn6](learn6/README.md) | learn3 で手書きした MinIO のマニフェストを公式 Helm chart で置き換え、install / upgrade / rollback と values によるカスタマイズを学ぶ |

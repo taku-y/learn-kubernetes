@@ -15,7 +15,7 @@ learn1〜learn6 の README とマニフェストから、2026-09-30 に遡って
 - [5. ストレージ](#5-ストレージ)
 - [6. コンテナイメージ](#6-コンテナイメージ)
 - [7. Helm](#7-helm)
-- [8. MinIO と S3](#8-minio-と-s3)
+- [8. RustFS と S3](#8-rustfs-と-s3)
 - [9. 操作の道具](#9-操作の道具)
 
 ## 1. クラスタと実行環境
@@ -30,23 +30,23 @@ learn1〜learn6 の README とマニフェストから、2026-09-30 に遡って
 | Multipass | Mac などの上に Ubuntu の VM を手早く作る道具 | `multipass launch --name k3s-master` | [learn2](learn2/README.md) |
 | etcd | クラスタの状態（リソースの定義）を保存するデータベース。Kubernetes の標準 | この教材の k3s は使っていない（`etcd datastore disabled`） | [learn4](learn4/README.md) |
 | SQLite（kine） | ノード 1 台の k3s が etcd の代わりに使うデータベース。1 つのファイル | `/var/lib/rancher/k3s/server/db/state.db`。Secret が平文で入っている | [learn4](learn4/README.md) |
-| マニフェスト | リソースの望む状態を書いた YAML ファイル。`kubectl apply -f` で渡す | `myapp.yaml`、`minio.yaml` | [learn1](learn1/README.md) |
+| マニフェスト | リソースの望む状態を書いた YAML ファイル。`kubectl apply -f` で渡す | `myapp.yaml`、`rustfs.yaml` | [learn1](learn1/README.md) |
 | リソース | Kubernetes が管理する対象の 1 つ 1 つ（Pod、Service、PV など）。`kind` で種類を表す | `kind: Deployment` | [learn1](learn1/README.md) |
-| Namespace | リソースを名前で区切るための入れ物。指定しなければ `default` に入る | `minio` | [learn3](learn3/README.md) |
+| Namespace | リソースを名前で区切るための入れ物。指定しなければ `default` に入る | `rustfs` | [learn3](learn3/README.md) |
 
 ## 2. ワークロード
 
 | 用語 | 意味 | この教材での例 | 初出 |
 |---|---|---|---|
 | Pod | 1 つ以上のコンテナをまとめて動かす最小単位 | `storage-test`、`pod-a`、`pod-b` | [learn1](learn1/README.md) |
-| Deployment | 指定した数の Pod を動かし続けるリソース。Pod が消えると作り直す | `myapp`（`replicas: 1`）、`minio` | [learn1](learn1/README.md) |
-| ReplicaSet | 「この形の Pod を N 個保つ」リソース。Deployment が作り、Pod のひな形が変わると新しいものを作る | Pod 名 `minio-7945684899-hbmpf` の真ん中が ReplicaSet の識別子 | [learn3](learn3/README.md) |
+| Deployment | 指定した数の Pod を動かし続けるリソース。Pod が消えると作り直す | `myapp`（`replicas: 1`）、`rustfs` | [learn1](learn1/README.md) |
+| ReplicaSet | 「この形の Pod を N 個保つ」リソース。Deployment が作り、Pod のひな形が変わると新しいものを作る | Pod 名 `rustfs-7fd7648c57-zssdr` の真ん中が ReplicaSet の識別子 | [learn3](learn3/README.md) |
 | レプリカ（replicas） | Deployment が保つ Pod の数 | `replicas: 1` | [learn1](learn1/README.md) |
 | Job | 1 回で終わる処理を実行するリソース。完了した Pod は `Completed` になる | `minio-rust-client` | [learn5](learn5/README.md) |
 | `backoffLimit` | Job が失敗した Pod をやり直す回数の上限。既定は 6 | 2 回目の Job は `BucketAlreadyOwnedByYou` で失敗を繰り返す | [learn5](learn5/README.md) |
 | `restartPolicy` | コンテナが終わったときに再起動するか。Job では `Never` か `OnFailure` | `restartPolicy: Never` | [learn5](learn5/README.md) |
 | ラベル / セレクタ | リソースに付ける `key: value` と、それで対象を選ぶ条件 | `app: myapp`、`-l job-name=minio-rust-client` | [learn1](learn1/README.md) |
-| readinessProbe | コンテナが応答できるかを定期的に確かめる設定。通るまで `READY 0/1` で、Service の転送先に入らない | `/minio/health/ready` を 5 秒ごと | [learn3](learn3/README.md) |
+| readinessProbe | コンテナが応答できるかを定期的に確かめる設定。通るまで `READY 0/1` で、Service の転送先に入らない | `/health/ready` を 5 秒ごと | [learn3](learn3/README.md) |
 | requests / limits | コンテナが確保するリソース量（requests）と上限（limits）。requests の合計がノードに収まらないと Pod は置かれない | `requests.memory: 16Gi` で `Insufficient memory` | [learn6](learn6/README.md) |
 | ロールアウト | Deployment が Pod を新しいひな形のものに入れ替えること。`kubectl rollout restart` で、ひな形を変えずに入れ替えもできる | Secret を変えた後の `rollout restart` | [learn4](learn4/README.md) |
 | `Running` / `Completed` / `Pending` | Pod や PVC の状態の表示。`Pending` は待ち | Pod の `Running`、Job の Pod の `Completed`、PVC の `Pending` | [learn2](learn2/README.md) |
@@ -68,17 +68,17 @@ learn1〜learn6 の README とマニフェストから、2026-09-30 に遡って
 
 | 用語 | 意味 | この教材での例 | 初出 |
 |---|---|---|---|
-| Service | Pod の集まりに一定の名前とアドレスでアクセスさせるリソース | `minio` | [learn3](learn3/README.md) |
+| Service | Pod の集まりに一定の名前とアドレスでアクセスさせるリソース | `rustfs` | [learn3](learn3/README.md) |
 | NodePort | Service の種類のひとつ。ノードの決まったポートでクラスタの外から受ける | API は `30900`、Console は `30901` | [learn3](learn3/README.md) |
-| EndpointSlice | Service の転送先（Pod の IP とポート）の一覧。ラベルで見つけた Pod が入る | `minio-stk7d` に `10.42.0.110` | [learn3](learn3/README.md) |
-| クラスタ内 DNS 名 | Service に `<Service 名>.<Namespace>.svc` で届く名前 | `http://minio.minio.svc:9000` | [learn3](learn3/README.md) |
+| EndpointSlice | Service の転送先（Pod の IP とポート）の一覧。ラベルで見つけた Pod が入る | `rustfs-5kwk2` に `10.42.0.129` | [learn3](learn3/README.md) |
+| クラスタ内 DNS 名 | Service に `<Service 名>.<Namespace>.svc` で届く名前 | `http://rustfs.rustfs.svc:9000` | [learn3](learn3/README.md) |
 | port-forward | 手元のポートを Pod のポートにつなぐ `kubectl` の機能。Service がなくても試せる | `kubectl port-forward deployment/myapp 8080:80` | [learn1](learn1/README.md) |
 
 ## 5. ストレージ
 
 | 用語 | 意味 | この教材での例 | 初出 |
 |---|---|---|---|
-| PersistentVolume（PV） | クラスタで使えるストレージの実体を登録するリソース | `ssd-pv`（`/mnt/ssd/k8s-storage`）、`minio-pv`、`minio-helm-pv` | [learn2](learn2/README.md) |
+| PersistentVolume（PV） | クラスタで使えるストレージの実体を登録するリソース | `ssd-pv`（`/mnt/ssd/k8s-storage`）、`rustfs-pv` | [learn2](learn2/README.md) |
 | PersistentVolumeClaim（PVC） | Pod がストレージを要求するリソース。条件の合う PV に結びつく（バインド） | `ssd-pvc`（10Gi） | [learn2](learn2/README.md) |
 | StorageClass | ストレージの種類と振る舞いを定義するリソース。PV・PVC は `storageClassName` で参照する | `local-ssd` | [learn2](learn2/README.md) |
 | バインド | PVC が特定の PV に結びつくこと。`kubectl get pvc` の `Bound` | `ssd-pvc` → `ssd-pv` | [learn2](learn2/README.md) |
@@ -121,14 +121,15 @@ learn1〜learn6 の README とマニフェストから、2026-09-30 に遡って
 | Bitnami | 多くの Chart とイメージを配布していた提供元。2025 年に無料の範囲を制限した | learn6 で公式 MinIO Chart に切り替えた理由 | [learn6](learn6/README.md) |
 | ServiceAccount | Pod が API を呼ぶときの身元 | Chart が作る `minio-sa` | [learn6](learn6/README.md) |
 
-## 8. MinIO と S3
+## 8. RustFS と S3
 
 | 用語 | 意味 | この教材での例 | 初出 |
 |---|---|---|---|
-| MinIO | S3 互換の API を持つオブジェクトストレージ。2025 年 10 月に無償のイメージの配布が終わった | `minio` namespace の Deployment | [learn3](learn3/README.md) |
-| `xl.meta` | MinIO がオブジェクトごとに作るファイル。小さいオブジェクトは中身もここに入る | `test-bucket/pod-a.txt/xl.meta` | [learn3](learn3/README.md) |
+| RustFS | Rust で書かれた、S3 互換の API を持つオブジェクトストレージ。Apache-2.0 | `rustfs` namespace の Deployment（`rustfs/rustfs:1.0.1`） | [learn3](learn3/README.md) |
+| MinIO | S3 互換の API を持つオブジェクトストレージ。この教材は当初これを使っていたが、2025 年 10 月に無償のイメージの配布が終わったので RustFS に替えた | （今は使っていない） | [notes.md](notes.md) |
+| `xl.meta` | RustFS（と MinIO）がオブジェクトごとに作るファイル。先頭が `XL2`。小さいオブジェクトは中身もここに入る | `test-bucket/pod-a.txt/xl.meta` | [learn3](learn3/README.md) |
 | オブジェクトストレージ | ファイルを「バケット」と「キー」で読み書きするストレージ。ディレクトリの階層は持たない | `s3://test-bucket/pod-a.txt` | [learn3](learn3/README.md) |
-| S3 互換 API | Amazon S3 と同じ呼び方で使える API。S3 用の道具（aws-cli、aws-sdk）がそのまま使える | `aws s3 cp --endpoint-url http://minio.minio.svc:9000` | [learn3](learn3/README.md) |
+| S3 互換 API | Amazon S3 と同じ呼び方で使える API。S3 用の道具（aws-cli、aws-sdk）がそのまま使える | `aws s3 cp --endpoint-url http://rustfs.rustfs.svc:9000` | [learn3](learn3/README.md) |
 | バケット | オブジェクトを入れる入れ物 | `test-bucket`、`rust-bucket` | [learn3](learn3/README.md) |
 | `aws-sdk-s3` | Rust から S3 を操作する crate | learn5 の `src/main.rs` | [learn5](learn5/README.md) |
 
