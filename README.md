@@ -4,11 +4,11 @@ Kubernetes の学習用リポジトリです。
 知らない用語（PV、PVC、StorageClass、Chart など）は [用語集](glossary.md) にまとめてあります。
 
 > **状態: learn6 まで実装**。learn2〜learn6 は、作業規約（[CLAUDE.md](CLAUDE.md)）に合わせて 2026-09-30 に README を書き直し、
-> 同じ日に VM 上で実行し直した出力を載せています。learn1 は書籍のハンズオンの記録で、再実行していません。
+> VM 上で実行し直した出力を載せています。learn1 は書籍のハンズオンの記録で、再実行していません。
 >
-> **MinIO のイメージについて**: MinIO は 2025 年 10 月に無償のコンテナイメージの配布をやめ、2026-09-30 の時点で
-> `minio/minio`・`minio/mc` は取得できません。learn3〜learn6 は、この教材の VM に残っているイメージで動かしています。
-> 新しい VM では learn3 以降の MinIO は起動できません。経緯は [notes.md](notes.md) にあります。
+> **MinIO から RustFS への切り替え（2026-10-04）**: learn3〜learn6 は当初 MinIO を使っていましたが、MinIO は 2025 年 10 月に
+> 無償のコンテナイメージの配布をやめました。そのため、Apache-2.0 で配布が続いている [RustFS](https://github.com/rustfs/rustfs)
+> （イメージ `rustfs/rustfs:1.0.1`、Chart `rustfs/rustfs` 1.0.1）に替え、2026-10-04 に VM で実行し直しました。経緯は [notes.md](notes.md) にあります。
 
 ## 目次
 
@@ -33,9 +33,9 @@ Kubernetes の学習用リポジトリです。
 
 | 案 | 内容 | 難易度 |
 |---|---|---|
-| A | **CronJob**: Kubernetes の CronJob リソースを使い、Rust プログラムで MinIO 上のデータを定期的にバックアップする Job を組む | 低〜中 |
-| B | **Liveness / Readiness Probe**: MinIO に Probe を設定し、障害時に Pod が自動再起動される挙動を観察する | 低〜中 |
-| C | **Ingress**: Ingress Controller (Traefik / Nginx) を導入し、MinIO Console と S3 API をホスト名ベースでルーティングする | 中 |
+| A | **CronJob**: Kubernetes の CronJob リソースを使い、Rust プログラムで RustFS 上のデータを定期的にバックアップする Job を組む | 低〜中 |
+| B | **Liveness / Readiness Probe**: RustFS に Probe を設定し、障害時に Pod が自動再起動される挙動を観察する | 低〜中 |
+| C | **Ingress**: Ingress Controller (Traefik / Nginx) を導入し、RustFS の Web 画面と S3 API をホスト名ベースでルーティングする | 中 |
 | D | **HorizontalPodAutoscaler**: CPU 負荷に応じて Pod 数を自動スケールさせ、スケールアウト/インの挙動を観察する | 中 |
 | E | **マルチノードクラスタ**: Multipass で VM をもう1台追加して k3s エージェントとして参加させ、Pod のスケジューリングとノード間ストレージの扱いを学ぶ | 中 |
 

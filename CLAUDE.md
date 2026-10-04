@@ -3,7 +3,7 @@
 このファイルは、Claude Code (claude.ai/code) がこのリポジトリで作業するときの指針です。
 
 このリポジトリは **Kubernetes** を主題にした学習教材です。Mac Mini 上の Multipass VM に k3s でクラスタを立て、
-その上でストレージ・MinIO・Helm などを手を動かして学びます。
+その上でストレージ・RustFS（S3 互換のオブジェクトストレージ）・Helm などを手を動かして学びます。
 
 ## ディレクトリの規則
 
@@ -28,8 +28,10 @@
 
 - クラスタは VM `k3s-master` の k3s 1 台。**別リポジトリ learn-tracing の namespace `tracing` が同居している。**この教材の作業では `tracing` に触らない
 - ファイルは `multipass transfer -r learnN k3s-master:/home/ubuntu/` で VM に送る（`multipass mount` は中身が空になる。[vm-setup.md](vm-setup.md)）
-- **MinIO のイメージは配布が終わっている。**VM に残った `quay.io/minio/minio:RELEASE.2024-12-18T13-15-44Z` だけが頼りなので、
-  VM のディスクを埋める作業（大きなビルドなど）の後は、kubelet のイメージ GC に消されないよう空きを戻す。詳細は `notes.md`
+- learn3〜learn6 のオブジェクトストレージは RustFS（`rustfs/rustfs:1.0.1`、Chart `rustfs/rustfs` 1.0.1）。
+  **MinIO はイメージの配布が終わったので使わない**（2026-10-04 に切り替えた。経緯は `notes.md`）
+- VM のディスクを埋める作業（大きなビルドなど）の後は、kubelet のイメージ GC に未使用のイメージを消されないよう、空きを戻す。詳細は `notes.md`
+- VM の NFS（`/mnt/ssd`）ではファイルのロックが使えない（`No locks available`）。詳細は [ssd-nfs.md](ssd-nfs.md)
 - 削除を伴う操作（PV・namespace・`/mnt/ssd` 以下のディレクトリの削除）は、対象を確かめてから行う。`/mnt/ssd` はユーザー個人の SSD で、教材以外のファイルもある
 
 ## 教材としての書き方

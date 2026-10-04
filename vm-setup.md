@@ -28,13 +28,27 @@ multipass transfer -r learn3 k3s-master:/home/ubuntu/
 
 VM の中に `/home/ubuntu/learn3/` ができ、ファイルがそろいます。
 
+**Mac 側でファイルを直したら、もう一度 `transfer` します。**コピーなので自動では反映されません。
+
+**`transfer` は上書きするだけで、Mac 側で消したファイルや名前を変えたファイルは VM に残ります。**
+learn3 のマニフェストを `minio*.yaml` から `rustfs*.yaml` に改名して transfer し直した後（2026-10-04）、VM には両方がありました。
+
 ```bash
 # VM 内
 ls /home/ubuntu/learn3
-# create-bucket.sh  minio-pv.yaml  minio.yaml  test-concurrent-write.sh
 ```
 
-**Mac 側でファイルを直したら、もう一度 `transfer` します。**コピーなので自動では反映されません。
+```
+README.md
+create-bucket.sh
+minio-pv.yaml
+minio.yaml
+rustfs-pv.yaml
+rustfs.yaml
+test-concurrent-write.sh
+```
+
+古いファイルを `kubectl apply -f .` のようにまとめて渡すと、それも apply されます。気になるときは VM 側のディレクトリを消してから transfer します。
 
 ### `multipass mount` を使わない理由
 

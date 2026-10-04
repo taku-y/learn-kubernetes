@@ -1,7 +1,7 @@
 # Mac の USB SSD を NFS で VM に見せる
 
 Mac に挿した USB SSD を、Multipass の VM `k3s-master` から `/mnt/ssd` として読み書きできるようにする手順です。
-learn2 で一度だけ行い、learn3 以降の PV（`/mnt/ssd/k8s-storage`、`/mnt/ssd/minio-storage` など）はすべてこのマウントの上に作ります。
+learn2 で一度だけ行い、learn3 以降の PV（`/mnt/ssd/k8s-storage`、`/mnt/ssd/rustfs-storage` など）はすべてこのマウントの上に作ります。
 
 ## 目次
 
