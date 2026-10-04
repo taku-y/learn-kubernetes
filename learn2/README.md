@@ -84,57 +84,19 @@ Mac 側は `192.168.64.1` になります（VM の中で `ip route` を見ると
 ## 3. SSD を VM から見えるようにする
 
 SSD は Mac に挿さっています。VM から見えるようにするには、Mac を NFS サーバーにして、VM からマウントします。
+手順は 4 つで、詳しくは横断解説 [ssd-nfs.md](../ssd-nfs.md) にまとめてあります。
 
-### 3-1. SSD のマウントポイントを調べる
+| 手順 | 場所 | すること |
+|---|---|---|
+| 1 | Mac 側 | `diskutil list external` で SSD のボリューム名を調べる（この教材では `SSD-PGU3`） |
+| 2 | Mac 側 | システム設定で `/sbin/nfsd` にフルディスクアクセスを与える |
+| 3 | Mac 側 | `/etc/exports` に公開の設定を書き、`sudo nfsd start` と `sudo nfsd update` を実行する |
+| 4 | VM 内 | `nfs-common` を入れ、`/mnt/ssd` にマウントする |
 
-macOS は外付けドライブを `/Volumes/<ドライブ名>` に見せます。この教材の SSD は `SSD-PGU3` という名前です。
-
-```bash
-# Mac 側
-diskutil list external   # 外付けディスクの一覧。SSD の識別子（例: disk4）とボリューム名を確かめる
-```
-
-以降の `/Volumes/SSD-PGU3` は、自分の SSD の名前に読み替えてください。
-
-### 3-2. nfsd にフルディスクアクセスを与える
-
-**システム設定 → プライバシーとセキュリティ → フルディスクアクセス** で `+` を押し、
-`Cmd+Shift+G` で `/sbin/nfsd` を選んで追加します。これをしないと、nfsd が外付けドライブを読めず
-`sandbox_check failed. nfsd has no read access` というエラーになります。
-
-### 3-3. Mac を NFS サーバーにする
-
-`/etc/exports` に「どのディレクトリを、どのネットワークに公開するか」を書きます。この環境で動いている設定は次の 1 行です。
-
-```bash
-# Mac 側
-cat /etc/exports
-```
-
-```
-/Volumes/SSD-PGU3 -alldirs -maproot=root -network 192.168.64.0 -mask 255.255.255.0
-```
-
-| 指定 | 意味 |
-|---|---|
-| `-alldirs` | `/Volumes/SSD-PGU3` の下のどのディレクトリでもマウントしてよい |
-| `-maproot=root` | VM の root からのアクセスを、Mac でも root として扱う |
-| `-network ... -mask ...` | VM のネットワーク（`192.168.64.x`）からだけ受け付ける |
-
-```bash
-# Mac 側
-sudo nfsd start      # nfsd を起動する
-sudo nfsd update     # /etc/exports を読み直す
-showmount -e localhost
-```
-
-### 3-4. VM からマウントする
+終わったら、VM から SSD が見えることを確かめます。
 
 ```bash
 # VM 内
-sudo apt install -y nfs-common
-sudo mkdir -p /mnt/ssd
-sudo mount -t nfs 192.168.64.1:/Volumes/SSD-PGU3 /mnt/ssd
 df -h /mnt/ssd
 ```
 
@@ -143,15 +105,8 @@ Filesystem                      Size  Used Avail Use% Mounted on
 192.168.64.1:/Volumes/SSD-PGU3  932G  237G  696G  26% /mnt/ssd
 ```
 
-VM の再起動後もマウントするには、`/etc/fstab` に 1 行足します。
-
-```bash
-# VM 内
-echo "192.168.64.1:/Volumes/SSD-PGU3 /mnt/ssd nfs defaults 0 0" | sudo tee -a /etc/fstab
-```
-
-> ⚠ 未検証: この環境の `/etc/fstab` にはこの行が入っておらず、VM も 2026-03-28 から再起動していません。
-> 再起動後に自動でマウントされるかは確かめていません。
+`Filesystem` が `192.168.64.1:...` になっていれば、`/mnt/ssd` の中身は Mac の SSD です。
+ここが `/dev/sda1` などになっているときは、マウントが外れていて、VM のディスクに書くことになります。
 
 ## 4. k3s を入れる
 

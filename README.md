@@ -47,6 +47,7 @@ Kubernetes の学習用リポジトリです。
 | [glossary.md](glossary.md) | 用語集。ステップをまたいで使う用語の意味と、この教材での実例 |
 | [notes.md](notes.md) | 確認したバージョン・API・詰まった点（確認日と URL つき） |
 | [vm-setup.md](vm-setup.md) | ファイルを VM に持ち込む方法と、コマンドの実行場所（learn2 以降で共通） |
+| [ssd-nfs.md](ssd-nfs.md) | Mac の USB SSD を NFS で VM の `/mnt/ssd` に見せる手順（learn2 で行い、learn3 以降の PV が使う） |
 | `learnN/` | 各ステップ。本体は `learnN/README.md` |
 | `log/` | 作業ログ |
 
