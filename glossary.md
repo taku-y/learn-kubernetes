@@ -98,7 +98,7 @@ learn1〜learn6 の README とマニフェストから、2026-09-30 に遡って
 
 | 用語 | 意味 | この教材での例 | 初出 |
 |---|---|---|---|
-| コンテナイメージ | コンテナの中身（ファイルと起動コマンド）をまとめたもの。`名前:タグ` で指す | `docker.io/nginx:1.23`、`minio/minio:latest` | [learn1](learn1/README.md) |
+| コンテナイメージ | コンテナの中身（ファイルと起動コマンド）をまとめたもの。`名前:タグ` で指す | `docker.io/nginx:1.23`、`rustfs/rustfs:1.0.1` | [learn1](learn1/README.md) |
 | タグ | イメージの版を表す名前。`latest` は固定された版ではない | `1.23`、`latest` | [learn1](learn1/README.md) |
 | containerd | k3s が使うコンテナの実行環境。Docker とはイメージの置き場所が別 | `sudo k3s ctr images import -` で取り込む | [learn5](learn5/README.md) |
 | Docker Engine | Linux 上でイメージをビルド・実行する道具 | VM 内で `docker build` に使う | [learn5](learn5/README.md) |
