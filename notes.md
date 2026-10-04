@@ -94,6 +94,17 @@
   - `amazon/aws-cli:2.37.6` から `s3 mb`・`s3 cp`・`s3 ls`・ダウンロードが通った
   - データディレクトリには `.rustfs.sys/` とバケット名のディレクトリができた。VM から見た持ち主は `ubuntu`
   - 既定の認証情報 `rustfsadmin` だと、起動時に `WARNING: RUSTFS_ACCESS_KEY uses the default rustfsadmin credential` が出る
+- learn3・learn4 を流して分かったこと（2026-10-04）:
+  - `kubectl logs` には起動スクリプトの数行しか出ない。本体のログはコンテナの `/logs/rustfs.log` に JSON Lines で出る
+  - 起動時に `Unsupported filesystem type detected for RustFS local endpoints: /data (NFS)` を WARN で出す。
+    扱いは環境変数 `RUSTFS_UNSUPPORTED_FS_POLICY`（`warn|fail`、既定 `warn`）
+  - `/health/ready` は storage・iam・lock の状態を JSON で返す。Web 画面は `:9001/rustfs/console/`（`:9001/` は 403）
+  - オブジェクトは MinIO と同じく `<bucket>/<key>/xl.meta`（先頭 `XL2`）として置かれる
+  - 既にあるバケットに `aws s3 mb` をしても成功（`make_bucket: test-bucket`）が返る
+  - 古いシークレットキーで署名すると `SignatureDoesNotMatch`
+  - `/logs/rustfs.log` に `Heal checkpoint persistence failed ... No locks available (os error 37)` が出た。
+    VM から `/mnt/ssd` 上のファイルに Python の `fcntl.lockf`・`fcntl.flock` をかけても同じ errno 37 になる。
+    マウントは `vers=3,local_lock=none`。S3 の読み書きには影響が見られなかった
 
 ## k3s の保存先と Secret
 

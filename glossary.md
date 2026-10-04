@@ -55,12 +55,12 @@ learn1〜learn6 の README とマニフェストから、2026-09-30 に遡って
 
 | 用語 | 意味 | この教材での例 | 初出 |
 |---|---|---|---|
-| ConfigMap | 機密でない設定値を Key-Value で持つリソース。環境変数やファイルとして Pod に渡す | `myapp-config`（nginx のテンプレート）、`minio-config`（`root-user`） | [learn1](learn1/README.md) |
-| Secret | 機密の値を持つリソース。値は base64 で保存されるが、暗号化ではない | `myapp-secret`（`MY_ENV`）、`minio-secret`（`root-password`） | [learn1](learn1/README.md) |
+| ConfigMap | 機密でない設定値を Key-Value で持つリソース。環境変数やファイルとして Pod に渡す | `myapp-config`（nginx のテンプレート）、`rustfs-config`（`access-key`） | [learn1](learn1/README.md) |
+| Secret | 機密の値を持つリソース。値は base64 で保存されるが、暗号化ではない | `myapp-secret`（`MY_ENV`）、`rustfs-secret`（`secret-key`） | [learn1](learn1/README.md) |
 | base64 | バイト列を英数字と記号の文字列で表す符号化。誰でも元に戻せる | `a3ViZXJuZXRlcw==` → `kubernetes` | [learn1](learn1/README.md) |
-| `last-applied-configuration` | `kubectl apply` が前回の内容を保存する注釈。`stringData` の値も平文で入る | `{"stringData":{"root-password":"minioadmin"}}` | [learn4](learn4/README.md) |
-| `stringData` | Secret に平文で値を書くためのフィールド。保存時に base64 に変換される | `stringData.root-password: minioadmin` | [learn4](learn4/README.md) |
-| `configMapKeyRef` / `secretKeyRef` | 環境変数の値を ConfigMap / Secret の特定のキーから取る書き方 | `MINIO_ROOT_PASSWORD` を `minio-secret` の `root-password` から取る | [learn1](learn1/README.md) |
+| `last-applied-configuration` | `kubectl apply` が前回の内容を保存する注釈。`stringData` の値も平文で入る | `{"stringData":{"secret-key":"rustfsadmin"}}` | [learn4](learn4/README.md) |
+| `stringData` | Secret に平文で値を書くためのフィールド。保存時に base64 に変換される | `stringData.secret-key: rustfsadmin` | [learn4](learn4/README.md) |
+| `configMapKeyRef` / `secretKeyRef` | 環境変数の値を ConfigMap / Secret の特定のキーから取る書き方 | `RUSTFS_SECRET_KEY` を `rustfs-secret` の `secret-key` から取る | [learn1](learn1/README.md) |
 | envsubst | テキスト中の `$VAR` を環境変数の値で置き換えるコマンド。公式 nginx イメージが起動時に使う | `Hello $MY_ENV` → `Hello kubernetes` | [learn1](learn1/README.md) |
 | RBAC | 誰がどのリソースに何をしてよいかを決める仕組み。Secret はこれで守る | 名前だけ出てくる | [learn4](learn4/README.md) |
 
@@ -90,7 +90,7 @@ learn1〜learn6 の README とマニフェストから、2026-09-30 に遡って
 | `Retain` | PVC を消しても PV とデータを残す回収方針 | `persistentVolumeReclaimPolicy: Retain` | [learn2](learn2/README.md) |
 | `Released` | PVC が消えた後の `Retain` の PV の状態。新しい PVC とは結ばれない | `ssd-pv` を作り直すまで Pod が `Pending` | [learn2](learn2/README.md) |
 | `claimRef` | PV に記録される「この PV はどの PVC のものか」という予約。`Released` の PV にも残り、外すと `Available` に戻る | `kubectl patch pv minio-helm-pv -p '{"spec":{"claimRef": null}}'` | [learn6](learn6/README.md) |
-| finalizer | 条件が満たされるまでリソースの削除を止める印。PV には `kubernetes.io/pv-protection` が付く | 使用中の `minio-pv` を消すと `Terminating` のまま残る | [learn4](learn4/README.md) |
+| finalizer | 条件が満たされるまでリソースの削除を止める印。PV には `kubernetes.io/pv-protection` が付く | 使用中の `rustfs-pv` を消すと `Terminating` のまま残る | [learn4](learn4/README.md) |
 | NFS | ネットワーク越しにディレクトリを共有する仕組み | Mac の `/Volumes/SSD` を VM の `/mnt/ssd` にマウントする | [learn2](learn2/README.md) |
 | マウントポイント | ディスクや共有ディレクトリが見えるパス | Mac 側 `/Volumes/SSD`、VM 側 `/mnt/ssd` | [learn2](learn2/README.md) |
 

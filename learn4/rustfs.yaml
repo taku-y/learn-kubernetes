@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: minio
+  name: rustfs
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: minio-pvc
-  namespace: minio
+  name: rustfs-pvc
+  namespace: rustfs
 spec:
   storageClassName: local-ssd
   accessModes:
@@ -19,66 +19,66 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: minio
-  namespace: minio
+  name: rustfs
+  namespace: rustfs
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: minio
+      app: rustfs
   template:
     metadata:
       labels:
-        app: minio
+        app: rustfs
     spec:
       containers:
-        - name: minio
-          image: quay.io/minio/minio:RELEASE.2024-12-18T13-15-44Z
-          command:
-            - minio
-            - server
-            - /data
-            - --console-address
-            - ":9001"
+        - name: rustfs
+          image: rustfs/rustfs:1.0.1
           env:
-            - name: MINIO_ROOT_USER
+            # データを置くディレクトリ。下の volumeMounts の mountPath と合わせる
+            - name: RUSTFS_VOLUMES
+              value: "/data"
+            - name: RUSTFS_CONSOLE_ENABLE
+              value: "true"
+            # 認証情報は ConfigMap と Secret から取る（値は学習用のダミー）
+            - name: RUSTFS_ACCESS_KEY
               valueFrom:
                 configMapKeyRef:
-                  name: minio-config
-                  key: root-user
-            - name: MINIO_ROOT_PASSWORD
+                  name: rustfs-config
+                  key: access-key
+            - name: RUSTFS_SECRET_KEY
               valueFrom:
                 secretKeyRef:
-                  name: minio-secret
-                  key: root-password
+                  name: rustfs-secret
+                  key: secret-key
           ports:
             - containerPort: 9000
               name: api
             - containerPort: 9001
               name: console
           volumeMounts:
-            - name: minio-storage
+            - name: rustfs-storage
               mountPath: /data
           readinessProbe:
             httpGet:
-              path: /minio/health/ready
+              path: /health/ready
               port: 9000
-            initialDelaySeconds: 10
+            initialDelaySeconds: 5
             periodSeconds: 5
       volumes:
-        - name: minio-storage
+        - name: rustfs-storage
           persistentVolumeClaim:
-            claimName: minio-pvc
+            claimName: rustfs-pvc
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: minio
-  namespace: minio
+  name: rustfs
+  namespace: rustfs
 spec:
   type: NodePort
   selector:
-    app: minio
+    app: rustfs
   ports:
     - name: api
       port: 9000
