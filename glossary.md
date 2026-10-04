@@ -89,6 +89,7 @@ learn1〜learn6 の README とマニフェストから、2026-09-30 に遡って
 | `ReadWriteOnce` | 1 つのノードからだけ読み書きできるアクセスモード | 教材の PV・PVC はすべてこれ | [learn2](learn2/README.md) |
 | `Retain` | PVC を消しても PV とデータを残す回収方針 | `persistentVolumeReclaimPolicy: Retain` | [learn2](learn2/README.md) |
 | `Released` | PVC が消えた後の `Retain` の PV の状態。新しい PVC とは結ばれない | `ssd-pv` を作り直すまで Pod が `Pending` | [learn2](learn2/README.md) |
+| `claimRef` | PV に記録される「この PV はどの PVC のものか」という予約。`Released` の PV にも残り、外すと `Available` に戻る | `kubectl patch pv minio-helm-pv -p '{"spec":{"claimRef": null}}'` | [learn6](learn6/README.md) |
 | finalizer | 条件が満たされるまでリソースの削除を止める印。PV には `kubernetes.io/pv-protection` が付く | 使用中の `minio-pv` を消すと `Terminating` のまま残る | [learn4](learn4/README.md) |
 | NFS | ネットワーク越しにディレクトリを共有する仕組み | Mac の `/Volumes/SSD` を VM の `/mnt/ssd` にマウントする | [learn2](learn2/README.md) |
 | マウントポイント | ディスクや共有ディレクトリが見えるパス | Mac 側 `/Volumes/SSD`、VM 側 `/mnt/ssd` | [learn2](learn2/README.md) |
