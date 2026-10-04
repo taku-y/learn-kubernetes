@@ -108,6 +108,17 @@
 - learn5（`aws-sdk-s3` 1.x、`force_path_style(true)`）を流して分かったこと（2026-10-04）:
   - CreateBucket・PutObject・ListObjectsV2・GetObject が通った
   - 既にあるバケットへの CreateBucket も成功を返す。MinIO では `BucketAlreadyOwnedByYou`（409）で Job が失敗していた
+- learn6（Chart `rustfs/rustfs` 1.0.1）を流して分かったこと（2026-10-04）:
+  - `helm show values` は 477 行。`helm get manifest` は 234 行（standalone、ingress 無効）
+  - `secret.rustfs.*` が空か `rustfsadmin` だと、`templates/secret.yaml` が `execution error` で展開を止める。
+    `secret.existingSecret` か `secret.allowInsecureDefaults: true` でも通る
+  - `ingress.enabled` の既定は `true`（`className: nginx`、ホスト `console.rustfs.com`・`endpoint.rustfs.com`）
+  - standalone では PVC を 2 つ（`rustfs-data`・`rustfs-logs`）作り、どちらにも `helm.sh/resource-policy: keep` が付く。
+    `helm uninstall` の後も PVC・PV は `Bound` のまま残り、同じ名前で install し直すと残った PVC を使う（データも残った）
+  - Deployment は `strategy.rollingUpdate.maxSurge: 0`・`maxUnavailable: 1`。upgrade では古い Pod が先に消える
+  - 初期化用コンテナ `busybox:stable`（`image.initImage.tag` で変えられる）。Pod は `runAsUser: 10001`・`fsGroup: 10001`・`readOnlyRootFilesystem: true`
+  - Service 名は `rustfs-svc`。NodePort の既定は 32000・32001
+  - テスト用の Pod `rustfs-test-connection`（`helm.sh/hook: test`）が `rustfs-svc:9000/health` を wget する
 
 ## k3s の保存先と Secret
 

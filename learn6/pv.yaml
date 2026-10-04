@@ -1,7 +1,9 @@
+# Chart が作る PVC 2 つ（rustfs-data・rustfs-logs）に、それぞれ専用の PV を用意する。
+# claimRef で「どの PVC のための PV か」を先に決めておくので、データとログが入れ違わない
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: minio-helm-pv
+  name: rustfs-helm-data-pv
 spec:
   capacity:
     storage: 50Gi
@@ -9,8 +11,36 @@ spec:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
   storageClassName: local-ssd
+  claimRef:
+    namespace: rustfs
+    name: rustfs-data
   local:
-    path: /mnt/ssd/minio-helm-storage
+    path: /mnt/ssd/rustfs-helm-storage/data
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - k3s-master
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: rustfs-helm-logs-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-ssd
+  claimRef:
+    namespace: rustfs
+    name: rustfs-logs
+  local:
+    path: /mnt/ssd/rustfs-helm-storage/logs
   nodeAffinity:
     required:
       nodeSelectorTerms:

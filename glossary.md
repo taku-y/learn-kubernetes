@@ -89,7 +89,7 @@ learn1〜learn6 の README とマニフェストから、2026-09-30 に遡って
 | `ReadWriteOnce` | 1 つのノードからだけ読み書きできるアクセスモード | 教材の PV・PVC はすべてこれ | [learn2](learn2/README.md) |
 | `Retain` | PVC を消しても PV とデータを残す回収方針 | `persistentVolumeReclaimPolicy: Retain` | [learn2](learn2/README.md) |
 | `Released` | PVC が消えた後の `Retain` の PV の状態。新しい PVC とは結ばれない | `ssd-pv` を作り直すまで Pod が `Pending` | [learn2](learn2/README.md) |
-| `claimRef` | PV に記録される「この PV はどの PVC のものか」という予約。`Released` の PV にも残り、外すと `Available` に戻る | `kubectl patch pv minio-helm-pv -p '{"spec":{"claimRef": null}}'` | [learn6](learn6/README.md) |
+| `claimRef` | PV に記録される「この PV はどの PVC のものか」という予約。`Released` の PV にも残り、外すと `Available` に戻る | `pv.yaml` の `claimRef` で `rustfs-helm-data-pv` を PVC `rustfs/rustfs-data` に予約する | [learn6](learn6/README.md) |
 | finalizer | 条件が満たされるまでリソースの削除を止める印。PV には `kubernetes.io/pv-protection` が付く | 使用中の `rustfs-pv` を消すと `Terminating` のまま残る | [learn4](learn4/README.md) |
 | NFS | ネットワーク越しにディレクトリを共有する仕組み | Mac の `/Volumes/SSD` を VM の `/mnt/ssd` にマウントする | [learn2](learn2/README.md) |
 | マウントポイント | ディスクや共有ディレクトリが見えるパス | Mac 側 `/Volumes/SSD`、VM 側 `/mnt/ssd` | [learn2](learn2/README.md) |
@@ -111,15 +111,16 @@ learn1〜learn6 の README とマニフェストから、2026-09-30 に遡って
 
 | 用語 | 意味 | この教材での例 | 初出 |
 |---|---|---|---|
-| Helm | Kubernetes のパッケージマネージャー。マニフェストのテンプレートに値を入れて展開する | `helm install minio minio-official/minio` | [learn6](learn6/README.md) |
-| Chart | 複数のマニフェストのテンプレートをまとめたパッケージ | `minio-official/minio` | [learn6](learn6/README.md) |
+| Helm | Kubernetes のパッケージマネージャー。マニフェストのテンプレートに値を入れて展開する | `helm install rustfs rustfs/rustfs` | [learn6](learn6/README.md) |
+| Chart | 複数のマニフェストのテンプレートをまとめたパッケージ | `rustfs/rustfs`（版 `1.0.1`） | [learn6](learn6/README.md) |
 | Values | Chart に渡す設定値。`values.yaml` で書き、テンプレートの既定値を上書きする | `learn6/values.yaml`、`learn6/values-v2.yaml` | [learn6](learn6/README.md) |
-| Release | Chart をある設定でインストールした実体。名前で管理する | `minio` | [learn6](learn6/README.md) |
+| Release | Chart をある設定でインストールした実体。名前で管理する | `rustfs` | [learn6](learn6/README.md) |
 | Revision | Release の版の番号。`upgrade` と `rollback` のたびに 1 増える。記録は Secret `sh.helm.release.v1.<Release>.v<N>` に入る | install で 1、upgrade で 2、rollback で 3 | [learn6](learn6/README.md) |
-| hook | install・upgrade の前後に Chart が動かす Job など | MinIO の Chart の `minio-post-job`（`post-install,post-upgrade`） | [learn6](learn6/README.md) |
-| Chart リポジトリ | Chart を配布する場所 | `https://charts.min.io/`（`minio-official`） | [learn6](learn6/README.md) |
-| Bitnami | 多くの Chart とイメージを配布していた提供元。2025 年に無料の範囲を制限した | learn6 で公式 MinIO Chart に切り替えた理由 | [learn6](learn6/README.md) |
-| ServiceAccount | Pod が API を呼ぶときの身元 | Chart が作る `minio-sa` | [learn6](learn6/README.md) |
+| hook | install・upgrade の前後や `helm test` のときに Chart が動かす Job・Pod など | RustFS の Chart のテスト用 Pod `rustfs-test-connection`（`helm.sh/hook: test`） | [learn6](learn6/README.md) |
+| `helm.sh/resource-policy: keep` | リソースに付ける注釈。`helm uninstall` でも消されずに残る | RustFS の Chart の PVC `rustfs-data`・`rustfs-logs` | [learn6](learn6/README.md) |
+| Chart リポジトリ | Chart を配布する場所 | `https://charts.rustfs.com`（`rustfs`） | [learn6](learn6/README.md) |
+| Bitnami | 多くの Chart とイメージを配布していた提供元。2025 年に無料の範囲を制限した | learn6 が Bitnami の MinIO Chart をやめた理由 | [learn6](learn6/README.md) |
+| ServiceAccount | Pod が API を呼ぶときの身元 | Chart が作る `rustfs` | [learn6](learn6/README.md) |
 
 ## 8. RustFS と S3
 
