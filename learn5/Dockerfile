@@ -14,5 +14,5 @@ RUN touch src/main.rs && cargo build --release
 # 実行ステージ
 FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
-COPY --from=builder /app/target/release/minio-client /usr/local/bin/minio-client
-CMD ["minio-client"]
+COPY --from=builder /app/target/release/s3-client /usr/local/bin/s3-client
+CMD ["s3-client"]

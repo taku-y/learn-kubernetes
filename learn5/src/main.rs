@@ -6,12 +6,12 @@ use aws_sdk_s3::{
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let endpoint = std::env::var("MINIO_ENDPOINT")
-        .unwrap_or_else(|_| "http://minio.minio.svc:9000".to_string());
+    let endpoint = std::env::var("S3_ENDPOINT")
+        .unwrap_or_else(|_| "http://rustfs.rustfs.svc:9000".to_string());
     let access_key = std::env::var("AWS_ACCESS_KEY_ID")
-        .unwrap_or_else(|_| "minioadmin".to_string());
+        .unwrap_or_else(|_| "rustfsadmin".to_string());
     let secret_key = std::env::var("AWS_SECRET_ACCESS_KEY")
-        .unwrap_or_else(|_| "minioadmin".to_string());
+        .unwrap_or_else(|_| "rustfsadmin".to_string());
     let bucket = std::env::var("BUCKET_NAME")
         .unwrap_or_else(|_| "rust-bucket".to_string());
 
@@ -21,13 +21,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .behavior_version(aws_config::BehaviorVersion::latest())
         .credentials_provider(credentials)
         // aws-sdk-s3 はリージョン指定が必須のため設定しているが、
-        // endpoint_url で MinIO に向けているため AWS への通信は発生しない
+        // endpoint_url で RustFS に向けているため AWS への通信は発生しない
         .region(Region::new("us-east-1"))
-        // AWS の本番 S3 ではなく MinIO のエンドポイントに向ける
+        // AWS の本番 S3 ではなく RustFS のエンドポイントに向ける
         // これにより AWS アカウントや AWS への通信は一切不要
         .endpoint_url(&endpoint)
         // AWS S3 はデフォルトでバーチャルホスト形式 (bucket.s3.amazonaws.com) を使うが、
-        // MinIO はパス形式 (host/bucket) を使うため強制的に切り替える
+        // クラスタ内では bucket.host の名前を引けないので、パス形式 (host/bucket) に切り替える
         .force_path_style(true)
         .build();
 

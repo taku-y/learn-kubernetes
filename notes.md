@@ -105,6 +105,9 @@
   - `/logs/rustfs.log` に `Heal checkpoint persistence failed ... No locks available (os error 37)` が出た。
     VM から `/mnt/ssd` 上のファイルに Python の `fcntl.lockf`・`fcntl.flock` をかけても同じ errno 37 になる。
     マウントは `vers=3,local_lock=none`。S3 の読み書きには影響が見られなかった
+- learn5（`aws-sdk-s3` 1.x、`force_path_style(true)`）を流して分かったこと（2026-10-04）:
+  - CreateBucket・PutObject・ListObjectsV2・GetObject が通った
+  - 既にあるバケットへの CreateBucket も成功を返す。MinIO では `BucketAlreadyOwnedByYou`（409）で Job が失敗していた
 
 ## k3s の保存先と Secret
 

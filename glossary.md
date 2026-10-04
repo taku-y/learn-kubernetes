@@ -42,10 +42,10 @@ learn1〜learn6 の README とマニフェストから、2026-09-30 に遡って
 | Deployment | 指定した数の Pod を動かし続けるリソース。Pod が消えると作り直す | `myapp`（`replicas: 1`）、`rustfs` | [learn1](learn1/README.md) |
 | ReplicaSet | 「この形の Pod を N 個保つ」リソース。Deployment が作り、Pod のひな形が変わると新しいものを作る | Pod 名 `rustfs-7fd7648c57-zssdr` の真ん中が ReplicaSet の識別子 | [learn3](learn3/README.md) |
 | レプリカ（replicas） | Deployment が保つ Pod の数 | `replicas: 1` | [learn1](learn1/README.md) |
-| Job | 1 回で終わる処理を実行するリソース。完了した Pod は `Completed` になる | `minio-rust-client` | [learn5](learn5/README.md) |
+| Job | 1 回で終わる処理を実行するリソース。完了した Pod は `Completed` になる | `s3-rust-client` | [learn5](learn5/README.md) |
 | `backoffLimit` | Job が失敗した Pod をやり直す回数の上限。既定は 6 | 2 回目の Job は `BucketAlreadyOwnedByYou` で失敗を繰り返す | [learn5](learn5/README.md) |
 | `restartPolicy` | コンテナが終わったときに再起動するか。Job では `Never` か `OnFailure` | `restartPolicy: Never` | [learn5](learn5/README.md) |
-| ラベル / セレクタ | リソースに付ける `key: value` と、それで対象を選ぶ条件 | `app: myapp`、`-l job-name=minio-rust-client` | [learn1](learn1/README.md) |
+| ラベル / セレクタ | リソースに付ける `key: value` と、それで対象を選ぶ条件 | `app: myapp`、`-l job-name=s3-rust-client` | [learn1](learn1/README.md) |
 | readinessProbe | コンテナが応答できるかを定期的に確かめる設定。通るまで `READY 0/1` で、Service の転送先に入らない | `/health/ready` を 5 秒ごと | [learn3](learn3/README.md) |
 | requests / limits | コンテナが確保するリソース量（requests）と上限（limits）。requests の合計がノードに収まらないと Pod は置かれない | `requests.memory: 16Gi` で `Insufficient memory` | [learn6](learn6/README.md) |
 | ロールアウト | Deployment が Pod を新しいひな形のものに入れ替えること。`kubectl rollout restart` で、ひな形を変えずに入れ替えもできる | Secret を変えた後の `rollout restart` | [learn4](learn4/README.md) |
@@ -103,8 +103,8 @@ learn1〜learn6 の README とマニフェストから、2026-09-30 に遡って
 | containerd | k3s が使うコンテナの実行環境。Docker とはイメージの置き場所が別 | `sudo k3s ctr images import -` で取り込む | [learn5](learn5/README.md) |
 | Docker Engine | Linux 上でイメージをビルド・実行する道具 | VM 内で `docker build` に使う | [learn5](learn5/README.md) |
 | マルチステージビルド | ビルド用と実行用でベースイメージを分ける Dockerfile の書き方 | `rust:slim` でビルドし、`debian:bookworm-slim` で動かす | [learn5](learn5/README.md) |
-| `imagePullPolicy: Never` | レジストリから取りに行かず、ノードにあるイメージだけを使う指定。無ければ `ErrImageNeverPull` | `minio-rust-client:0.1.0` | [learn5](learn5/README.md) |
-| イメージ GC | ディスクの使用率が 85% を超えると、kubelet が使われていないイメージを消す仕組み | ビルド中に `minio/minio:latest` が消えた | [learn5](learn5/README.md) |
+| `imagePullPolicy: Never` | レジストリから取りに行かず、ノードにあるイメージだけを使う指定。無ければ `ErrImageNeverPull` | `s3-rust-client:0.1.0` | [learn5](learn5/README.md) |
+| イメージ GC | ディスクの使用率が 85% を超えると、kubelet が使われていないイメージを消す仕組み | ビルド中に `minio/minio:latest` が消えた（MinIO を使っていたころ） | [learn5](learn5/README.md) |
 | スワップ | メモリが足りないときにディスクを代わりに使う領域 | Rust のビルド用に 2GB の `/swapfile` を足す | [learn5](learn5/README.md) |
 
 ## 7. Helm

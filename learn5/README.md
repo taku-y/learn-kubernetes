@@ -1,7 +1,7 @@
 # 自作の Rust プログラムを Job として動かす
 
 `aws-sdk-s3` を使った Rust のプログラムをコンテナイメージにし、Kubernetes の Job として 1 回だけ実行します。
-プログラムは MinIO にバケットを作り、ファイルを置いて、一覧を取り、読み戻します。
+プログラムは RustFS にバケットを作り、ファイルを置いて、一覧を取り、読み戻します。
 
 このステップの問いは次のひとつです。
 
@@ -27,8 +27,8 @@
 
 learn4 を終えて、クリーンアップをしていない状態から始めます。
 
-- namespace `minio` で MinIO が動いている
-- ConfigMap `minio-config`（`root-user`）と Secret `minio-secret`（`root-password`）がある
+- namespace `rustfs` で RustFS が動いている
+- ConfigMap `rustfs-config`（`access-key`）と Secret `rustfs-secret`（`secret-key`）がある
 - バケット `rust-bucket` は、まだ無い
 
 ```bash
@@ -70,16 +70,19 @@ Dockerfile ──docker build──→ Docker の置き場所 ──docker save 
 
 | 環境変数 | 値の出どころ | 値 |
 |---|---|---|
-| `MINIO_ENDPOINT` | `job.yaml` に直書き | `http://minio.minio.svc:9000` |
+| `S3_ENDPOINT` | `job.yaml` に直書き | `http://rustfs.rustfs.svc:9000` |
 | `BUCKET_NAME` | `job.yaml` に直書き | `rust-bucket` |
-| `AWS_ACCESS_KEY_ID` | ConfigMap `minio-config` の `root-user` | `minioadmin` |
-| `AWS_SECRET_ACCESS_KEY` | Secret `minio-secret` の `root-password` | `minioadmin` |
+| `AWS_ACCESS_KEY_ID` | ConfigMap `rustfs-config` の `access-key` | `rustfsadmin` |
+| `AWS_SECRET_ACCESS_KEY` | Secret `rustfs-secret` の `secret-key` | `rustfsadmin` |
 
-AWS の SDK を MinIO に向けるために、2 つの設定をしています。
+AWS の SDK を RustFS に向けるために、2 つの設定をしています。
 
-- `endpoint_url` で接続先を MinIO にする。AWS には通信しない
+- `endpoint_url` で接続先を RustFS にする。AWS には通信しない
 - `force_path_style(true)` で URL を `http://host/bucket/key` の形にする。
-  SDK の既定は `http://bucket.host/key` の形で、`rust-bucket.minio.minio.svc` という名前はクラスタ内で引けない
+  SDK の既定は `http://bucket.host/key` の形で、`rust-bucket.rustfs.rustfs.svc` という名前はクラスタ内で引けない
+
+プログラムは S3 の API しか使っていないので、RustFS に固有のところはありません。
+そのため、クレート名（`s3-client`）・イメージ名（`s3-rust-client`）・環境変数名（`S3_ENDPOINT`）に RustFS の名前を入れていません。
 
 ## 3. イメージをビルドする
 
@@ -137,41 +140,41 @@ Dockerfile は 2 段構成（マルチステージビルド）です。
 ```bash
 # VM 内
 cd /home/ubuntu/learn5
-CARGO_BUILD_JOBS=1 docker build -t minio-rust-client:0.1.0 .
-docker images minio-rust-client
+CARGO_BUILD_JOBS=1 docker build -t s3-rust-client:0.1.0 .
+docker images s3-rust-client
 ```
 
 `--progress=plain` を付けて実行したときのログから、2 つの `cargo build` の行を抜き出します。
 
 ```
-#10 [builder 4/6] RUN mkdir src && echo "fn main() {}" > src/main.rs && cargo build --release
-#10 147.9     Finished `release` profile [optimized] target(s) in 2m 27s
-#10 DONE 149.1s
+#11 [builder 4/6] RUN mkdir src && echo "fn main() {}" > src/main.rs && cargo build --release
+#11 149.0     Finished `release` profile [optimized] target(s) in 2m 28s
+#11 DONE 150.5s
 ...
-#12 [builder 6/6] RUN touch src/main.rs && cargo build --release
-#12 3.765     Finished `release` profile [optimized] target(s) in 3.41s
-#12 DONE 3.8s
+#13 [builder 6/6] RUN touch src/main.rs && cargo build --release
+#13 4.311     Finished `release` profile [optimized] target(s) in 3.91s
+#13 DONE 4.4s
 ```
 
 ```
-IMAGE                      ID             DISK USAGE   CONTENT SIZE   EXTRA
-minio-rust-client:0.1.0    cd18e0ffdacf        123MB             0B
+IMAGE                  ID             DISK USAGE   CONTENT SIZE   EXTRA
+s3-rust-client:0.1.0   2dfa0bdd4f5d        123MB             0B
 ```
 
-この環境では全体で 165 秒かかりました。ほとんどは依存クレートのビルド（149 秒）で、自分のコード（`main.rs`）のビルドは 4 秒です。
-Dockerfile が依存だけを先にビルドしているので、`main.rs` だけを直したときは、この 149 秒の段がキャッシュから再利用されます。
+この環境では全体で 170 秒かかりました。ほとんどは依存クレートのビルド（150 秒）で、自分のコード（`main.rs`）のビルドは 4 秒です。
+Dockerfile が依存だけを先にビルドしているので、`main.rs` だけを直したときは、この 150 秒の段がキャッシュから再利用されます。
 `CARGO_BUILD_JOBS=1` は並列コンパイルを 1 本に絞り、メモリの使用量を抑えます。
 
 ## 4. k3s にイメージを取り込む
 
 ```bash
 # VM 内
-docker save minio-rust-client:0.1.0 | sudo k3s ctr images import -
-sudo k3s ctr images ls | grep minio-rust
+docker save s3-rust-client:0.1.0 | sudo k3s ctr images import -
+sudo k3s ctr images ls | grep s3-rust
 ```
 
 ```
-docker.io/library/minio-rust-client:0.1.0   ...   120.6 MiB   ...
+docker.io/library/s3-rust-client:0.1.0   ...   120.6 MiB   linux/arm64   ...
 ```
 
 containerd では、名前に `docker.io/library/` が付きます。Docker Hub の公式イメージと同じ名前の付け方です。
@@ -188,8 +191,8 @@ spec:
     spec:
       restartPolicy: Never
       containers:
-        - name: minio-rust-client
-          image: minio-rust-client:0.1.0
+        - name: s3-rust-client
+          image: s3-rust-client:0.1.0
           imagePullPolicy: Never
 ```
 
@@ -202,17 +205,17 @@ spec:
 ```bash
 # VM 内
 kubectl apply -f job.yaml
-kubectl wait -n minio --for=condition=complete job/minio-rust-client --timeout=120s
-kubectl get job,pod -n minio -l job-name=minio-rust-client
-kubectl logs -n minio -l job-name=minio-rust-client
+kubectl wait -n rustfs --for=condition=complete job/s3-rust-client --timeout=120s
+kubectl get job,pod -n rustfs -l job-name=s3-rust-client
+kubectl logs -n rustfs -l job-name=s3-rust-client
 ```
 
 ```
-NAME                STATUS     COMPLETIONS   DURATION   AGE
-minio-rust-client   Complete   1/1           7s         7s
+NAME                       STATUS     COMPLETIONS   DURATION   AGE
+job.batch/s3-rust-client   Complete   1/1           4s         5s
 
-NAME                      READY   STATUS      RESTARTS   AGE
-minio-rust-client-64wwf   0/1     Completed   0          7s
+NAME                       READY   STATUS      RESTARTS   AGE
+pod/s3-rust-client-wvl8t   0/1     Completed   0          4s
 ```
 
 ```
@@ -226,20 +229,20 @@ minio-rust-client-64wwf   0/1     Completed   0          7s
 内容: Hello from Rust on Kubernetes!
 ```
 
-MinIO のデータディレクトリにも `rust-bucket/hello.txt` ができています。
+RustFS のデータディレクトリにも `rust-bucket/hello.txt` ができています。
 
 ```bash
 # VM 内
-find /mnt/ssd/minio-storage -maxdepth 2 -not -path "*/.minio.sys*"
+find /mnt/ssd/rustfs-storage -maxdepth 2 -not -path "*/.rustfs.sys*"
 ```
 
 ```
-/mnt/ssd/minio-storage
-/mnt/ssd/minio-storage/rust-bucket
-/mnt/ssd/minio-storage/rust-bucket/hello.txt
-/mnt/ssd/minio-storage/test-bucket
-/mnt/ssd/minio-storage/test-bucket/pod-a.txt
-/mnt/ssd/minio-storage/test-bucket/pod-b.txt
+/mnt/ssd/rustfs-storage
+/mnt/ssd/rustfs-storage/rust-bucket
+/mnt/ssd/rustfs-storage/rust-bucket/hello.txt
+/mnt/ssd/rustfs-storage/test-bucket
+/mnt/ssd/rustfs-storage/test-bucket/pod-a.txt
+/mnt/ssd/rustfs-storage/test-bucket/pod-b.txt
 ```
 
 ## 6. 出力の読み方
@@ -247,46 +250,40 @@ find /mnt/ssd/minio-storage -maxdepth 2 -not -path "*/.minio.sys*"
 | 見るもの | 読み方 |
 |---|---|
 | Job の `COMPLETIONS 1/1` | 成功した Pod の数 / 必要な数 |
-| Job の `DURATION 7s` | 最初の Pod の起動から完了まで |
+| Job の `DURATION 4s` | 最初の Pod の起動から完了まで |
 | Pod の `Completed` | コンテナが終了コード 0 で終わった。Pod は消えずに残り、ログを読める |
 | Pod の `Error` | コンテナが 0 以外で終わった。Job は `backoffLimit` まで別の Pod を作ってやり直す |
 
 ## 7. 落とし穴
 
-- **同じ Job を 2 回目に流すと失敗し続けます。**プログラムは最初に必ずバケットを作るので、
-  2 回目は `BucketAlreadyOwnedByYou`（HTTP 409）で終わります。Job は間隔を空けてやり直し、45 秒で 3 つの Pod が `Error` になりました
-
-  ```
-  NAME                      READY   STATUS   RESTARTS   AGE
-  minio-rust-client-56k97   0/1     Error    0          35s
-  minio-rust-client-8nfv6   0/1     Error    0          45s
-  minio-rust-client-kxvkw   0/1     Error    0          15s
-  ```
-
-  やり直す前に、バケットを消すか、`BUCKET_NAME` を変えます。Job は同じ名前で apply し直せないので、先に `kubectl delete -f job.yaml` をします
+- **同じ Job を 2 回目に流しても成功します。サーバーによっては失敗します。**プログラムは最初に必ずバケットを作ります。
+  RustFS は、既にあるバケットの作成にも成功を返すので、2 回目も `Complete` になり、ログは 1 回目と同じでした。
+  MinIO を使っていたころは、2 回目が `BucketAlreadyOwnedByYou`（HTTP 409）で失敗し、Job が `backoffLimit` までやり直していました。
+  **同じプログラムでも、S3 互換サーバーごとに細かい返し方が違います。**
+  なお、Job は同じ名前で apply し直せないので、2 回目の前に `kubectl delete -f job.yaml` をします
 - **取り込んでいないタグを指定すると、Pod は起動しません。**`imagePullPolicy: Never` なので取りに行きもせず、`ErrImageNeverPull` になります
 
   ```
-  Warning  ErrImageNeverPull  kubelet  Container image "minio-rust-client:0.2.0" is not present with pull policy of Never
+  Warning  ErrImageNeverPull  5s (x2 over 6s)  kubelet  Container image "s3-rust-client:0.2.0" is not present with pull policy of Never
   ```
 
 - **使われていないイメージは、ディスクが埋まると k3s に消されます。**kubelet はディスクの使用率が 85% を超えると、
   どの Pod も使っていないイメージを消します。この環境では、ビルドで Docker のキャッシュが 2GB 増えたときに、
-  使っていなかった `minio/minio:latest` などが消えました（k3s のログに `Removing image to free bytes` が出る）。
+  使っていなかった `minio/minio:latest` などが消えました（2026-09-30、MinIO を使っていたころ。k3s のログに `Removing image to free bytes` が出る）。
   ビルドの後は `docker builder prune -af` でキャッシュを消しておきます
 - **タグに `latest` を使うと、`imagePullPolicy` の既定が `Always` になります。**`latest` のイメージを取り込んで使うときは、`imagePullPolicy: Never` か `IfNotPresent` を明示します
 
 ## 演習
 
-1. `job.yaml` の `BUCKET_NAME` を `rust-bucket-2` に変えて、Job を消してから apply し直す。成功することを確かめる
-2. `job.yaml` の `image` を `minio-rust-client:0.2.0` に変えて apply し、`kubectl describe pod` で `ErrImageNeverPull` を確かめる
+1. `job.yaml` の `BUCKET_NAME` を `Rust_Bucket` （S3 のバケット名に使えない大文字と `_`）に変えて、Job を消してから apply し直す。Pod のログと `STATUS` を見る
+2. `job.yaml` の `image` を `s3-rust-client:0.2.0` に変えて apply し、`kubectl describe pod` で `ErrImageNeverPull` を確かめる
 3. `src/main.rs` の文言を変えて `0.2.0` としてビルドし、取り込み、演習 2 の Job が動くようにする。
    `main.rs` だけの変更で、依存クレートのビルドがキャッシュされることを確かめる
-4. Secret `minio-secret` のパスワードを間違った値にして Job を流し、ログに何が出るかを見る（終わったら元に戻す）
+4. Secret `rustfs-secret` の `secret-key` を間違った値にして Job を流し、ログに何が出るかを見る（終わったら元に戻す）
 
 ## クリーンアップ
 
-learn6 では、learn3〜learn5 の MinIO を消して Helm で入れ直します。Job は消しておきます。
+learn6 では、learn3〜learn5 の RustFS を消して Helm で入れ直します。Job は消しておきます。
 
 ```bash
 # VM 内
@@ -300,4 +297,4 @@ docker builder prune -af   # ビルドのキャッシュ（約 2GB）を消す
 - Job は Pod を正常終了させるためのリソース。失敗すると `backoffLimit` まで別の Pod でやり直す
 - `imagePullPolicy: Never` は、取り込んだイメージだけを使う指定。無ければ `ErrImageNeverPull`
 - 使っていないイメージは、ディスクが埋まると消される
-- 次の [learn6](../learn6/README.md) では、learn3〜learn5 で手書きした MinIO を Helm の Chart で置き換えます
+- 次の [learn6](../learn6/README.md) では、learn3〜learn5 で手書きした RustFS を Helm の Chart で置き換えます
