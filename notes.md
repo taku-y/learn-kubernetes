@@ -7,6 +7,7 @@
 - [この教材の環境](#この教材の環境)
 - [MinIO のイメージの配布終了](#minio-のイメージの配布終了)
 - [MinIO の Helm Chart 5.4.0](#minio-の-helm-chart-540)
+- [RustFS（MinIO の代わり）](#rustfsminio-の代わり)
 - [k3s の保存先と Secret](#k3s-の保存先と-secret)
 - [kubelet のイメージ GC](#kubelet-のイメージ-gc)
 - [multipass mount](#multipass-mount)
@@ -48,7 +49,7 @@
 - この VM の containerd には `quay.io/minio/minio:RELEASE.2024-12-18T13-15-44Z` が残っている。learn3・learn4 はこれに固定した
 - 控えとして、このイメージ（linux/arm64）を VM の `/home/ubuntu/minio-RELEASE.2024-12-18T13-15-44Z.tar`（58MB）に書き出した。
   消えたら `sudo k3s ctr images import /home/ubuntu/minio-RELEASE.2024-12-18T13-15-44Z.tar` で戻せる（⚠ 未検証: 戻す操作は試していない）
-- 新しい VM では learn3 以降の MinIO を起動できない。代わりの S3 互換ストレージに移すかどうかは未定
+- 新しい VM では learn3 以降の MinIO を起動できない。2026-10-04 に learn3〜learn6 を RustFS に移すことにした（次節）
 
 ## MinIO の Helm Chart 5.4.0
 
@@ -65,6 +66,34 @@
 - Chart の Deployment には readinessProbe も livenessProbe も無い（`helm get manifest` に `probe` が 0 件）
 - 2026-03-29 の install では、後処理の Job `minio-post-job` が `BackoffLimitExceeded` で失敗し、Release が `failed`（`context canceled`）になっていた。当時のログは残っておらず、原因は分からない
 - `helm uninstall` は、失敗した後処理の Job を消さなかった
+
+## RustFS（MinIO の代わり）
+
+確認日: 2026-10-04
+
+- リポジトリ: https://github.com/rustfs/rustfs 。ライセンス Apache-2.0、アーカイブされていない（`gh api repos/rustfs/rustfs`）
+- 最新リリース `1.0.1`（2026-10-03）。`1.0.0` は 2026-09-16。その前は `1.0.0-rc.N` のプレリリース
+  - https://github.com/rustfs/rustfs/releases/tag/1.0.1
+- イメージ: Docker Hub `rustfs/rustfs:1.0.1`（amd64・arm64）。`-glibc` 付きの別タグもある。匿名で取得できた
+  - https://hub.docker.com/r/rustfs/rustfs/tags
+- `Dockerfile`（タグ `1.0.1`）から読めること:
+  - ベースは `alpine:3.24.1`、ユーザー `rustfs`（UID 10001）で動く
+  - `EXPOSE 9000 9001`（9000 が S3 API、9001 が Web 画面）、`RUSTFS_VOLUMES=/data`
+- `docker-compose-simple.yml`（タグ `1.0.1`）にある環境変数: `RUSTFS_ACCESS_KEY`・`RUSTFS_SECRET_KEY`（既定 `rustfsadmin`）、
+  `RUSTFS_ADDRESS=0.0.0.0:9000`、`RUSTFS_CONSOLE_ADDRESS=0.0.0.0:9001`、`RUSTFS_CONSOLE_ENABLE=true`。
+  ヘルスチェックは `:9000/health` と `:9001/rustfs/console/health`
+- Helm chart: リポジトリ `https://charts.rustfs.com` に `rustfs` `1.0.1`（appVersion `1.0.1`）がある（`index.yaml`）。
+  ソースは https://github.com/rustfs/rustfs/tree/1.0.1/helm/rustfs
+  - 既定は `mode.distributed.enabled: true`・`replicaCount: 4`。`mode.standalone.enabled` で Pod 1 つ・PVC 1 つになる
+  - `storageclass.name: local-path`、`dataStorageSize`・`logStorageSize` はどちらも `256Mi`
+  - 認証情報は `secret.rustfs.access_key`・`secret.rustfs.secret_key`、または `secret.existingSecret`
+  - `podSecurityContext` は `runAsUser`・`runAsGroup`・`fsGroup` が 10001。`readOnlyRootFilesystem: true`
+  - livenessProbe `/health`、readinessProbe `/health/ready`。`resources: {}`
+- この VM で試したこと（namespace `rustfs-test`、PV は `/mnt/ssd/rustfs-test`、試した後に消した）:
+  - 素の Pod（`RUSTFS_VOLUMES=/data`）が 7 秒で Ready になった。UID 10001 でも NFS 上の `/data` に書けた
+  - `amazon/aws-cli:2.37.6` から `s3 mb`・`s3 cp`・`s3 ls`・ダウンロードが通った
+  - データディレクトリには `.rustfs.sys/` とバケット名のディレクトリができた。VM から見た持ち主は `ubuntu`
+  - 既定の認証情報 `rustfsadmin` だと、起動時に `WARNING: RUSTFS_ACCESS_KEY uses the default rustfsadmin credential` が出る
 
 ## k3s の保存先と Secret
 

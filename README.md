@@ -59,4 +59,5 @@ Kubernetes の学習用リポジトリです。
 
 | 日付 | 内容 |
 |---|---|
+| [20261004](log/20261004.md) | MinIO の代わりに RustFS を調べ、採用を決めた。learn3 の RustFS 版を作り始めた。learn6 の MinIO の削除は残タスク |
 | [20260930](log/20260930.md) | 作業規約（CLAUDE.md）を定め、learn1 の README と用語集を足した。learn2〜learn6 を VM で実行し直し、README を書き直した。MinIO のイメージの配布終了を見つけた |
