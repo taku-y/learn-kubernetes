@@ -3,6 +3,10 @@ rootPassword: minioadmin
 
 mode: standalone
 
+# Chart の既定値は、インストール後に mc（MinIO のクライアント）の Job でユーザー console を作る。
+# mc のイメージはもう取得できず、Job が失敗して Release も failed になるので、ユーザーは作らない
+users: []
+
 persistence:
   enabled: true
   storageClass: local-ssd
@@ -16,10 +20,9 @@ consoleService:
   type: NodePort
   nodePort: 30901
 
+# Chart の既定値は requests.memory: 16Gi で、メモリ 2GB の VM では Pod が Pending のままになる。
+# そのため requests だけは最初から小さくしておく（limits は付けない）
 resources:
   requests:
     memory: 256Mi
     cpu: 100m
-  limits:
-    memory: 512Mi
-    cpu: 500m
