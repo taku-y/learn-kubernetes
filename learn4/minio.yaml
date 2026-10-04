@@ -33,7 +33,7 @@ spec:
     spec:
       containers:
         - name: minio
-          image: minio/minio:latest
+          image: quay.io/minio/minio:RELEASE.2024-12-18T13-15-44Z
           command:
             - minio
             - server
